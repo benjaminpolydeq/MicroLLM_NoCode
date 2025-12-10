@@ -1,0 +1,9 @@
+{
+  "dataset": [
+    {"question": "Quels sont les délais légaux ?", "answer": "Les délais sont conformes au code du travail."},
+    {"question": "Comment obtenir un contrat ?", "answer": "Contactez le service juridique pour l'obtenir."}
+  ],
+  "rules": {
+    "litige": "En cas de litige, consultez votre avocat."
+  }
+}
