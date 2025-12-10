@@ -3,7 +3,7 @@ import json
 import os
 from export_github import push_to_github
 
-# --- Initialisation dossiers ---
+# --- Initialisation des dossiers ---
 os.makedirs("data", exist_ok=True)
 os.makedirs("rules", exist_ok=True)
 os.makedirs("templates", exist_ok=True)
@@ -37,7 +37,7 @@ with open(RULES_FILE, "r") as f:
     rules = json.load(f)
 
 # --- Interface ---
-st.title("🌟 MicroLLM Studio - No Code Avancé")
+st.title("🌟 MicroLLM Studio - No Code Clé en Main")
 
 # Charger un template
 if template_choice != "Aucun":
@@ -73,7 +73,7 @@ if st.button("Ajouter une règle"):
             json.dump(rules, f, indent=4)
         st.success("Règle ajoutée !")
 
-# --- Tester le modèle avec entraînement automatique ---
+# --- Tester le modèle avec mini-entraînement automatique ---
 st.header("Tester MicroLLM")
 user_input = st.text_input("Posez une question")
 if st.button("Générer réponse"):
@@ -89,8 +89,8 @@ if st.button("Générer réponse"):
             response = item["answer"]
             break
     st.info(f"Réponse : {response}")
-    
-    # Entraînement automatique : si réponse non trouvée, on propose de l'ajouter
+
+    # Mini-entraînement automatique
     if response == "Je ne sais pas.":
         add_response = st.text_input("Ajouter une réponse pour cette question ?")
         if add_response:
