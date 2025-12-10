@@ -1,0 +1,9 @@
+{
+  "dataset": [
+    {"question": "Quels sont les horaires du cabinet ?", "answer": "8h00 - 18h00 tous les jours sauf le dimanche."},
+    {"question": "Comment prendre rendez-vous ?", "answer": "Appelez le 123-456-7890 ou utilisez notre site web."}
+  ],
+  "rules": {
+    "urgence": "En cas d'urgence, appelez le 15 immédiatement."
+  }
+}
