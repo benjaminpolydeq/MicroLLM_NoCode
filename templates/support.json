@@ -1,0 +1,9 @@
+{
+  "dataset": [
+    {"question": "Comment contacter le support ?", "answer": "Envoyez un email à support@entreprise.com"},
+    {"question": "Quels sont les horaires du support ?", "answer": "9h00 - 17h00 du lundi au vendredi"}
+  ],
+  "rules": {
+    "problème technique": "Redémarrez l'application et réessayez. Contactez le support si le problème persiste."
+  }
+}
