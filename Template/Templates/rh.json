@@ -1,0 +1,9 @@
+{
+  "dataset": [
+    {"question": "Comment postuler ?", "answer": "Envoyez votre CV à rh@entreprise.com"},
+    {"question": "Quels sont les horaires ?", "answer": "9h00 - 17h00 du lundi au vendredi"}
+  ],
+  "rules": {
+    "salaire": "Pour toute question sur le salaire, contactez RH directement."
+  }
+}
