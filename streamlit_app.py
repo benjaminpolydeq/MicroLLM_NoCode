@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import subprocess
 import time
+import numpy as np
 
 # Page Configuration
 st.set_page_config(
@@ -519,6 +520,3 @@ st.markdown("""
     <p>Democratizing Proprietary AI for Enterprise & Regulated Environments</p>
 </div>
 """, unsafe_allow_html=True)
-
-# Import numpy for random data
-import numpy as np
