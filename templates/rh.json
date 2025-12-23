@@ -1,0 +1,38 @@
+  "description": "Template Ressources Humaines",
+  "dataset": [
+    {
+      "id": 1,
+      "question": "Comment demander un congé ?",
+      "reponse": "Pour demander un congé, connectez-vous au portail RH, allez dans 'Mes demandes' et remplissez le formulaire de demande de congé. Votre manager recevra une notification.",
+      "categorie": "RH"
+    },
+    {
+      "id": 2,
+      "question": "Quelle est la politique de télétravail ?",
+      "reponse": "Le télétravail est possible jusqu'à 2 jours par semaine après validation de votre manager. Une demande doit être faite au moins 48h à l'avance.",
+      "categorie": "RH"
+    },
+    {
+      "id": 3,
+      "question": "Comment accéder à mes fiches de paie ?",
+      "reponse": "Vos fiches de paie sont disponibles sur le portail RH dans la section 'Documents' > 'Fiches de paie'.",
+      "categorie": "RH"
+    }
+  ],
+  "rules": [
+    {
+      "id": 1,
+      "nom": "Confidentialité",
+      "description": "Ne jamais divulguer d'informations personnelles sur d'autres employés",
+      "type": "Contenu",
+      "active": true
+    },
+    {
+      "id": 2,
+      "nom": "Procédures",
+      "description": "Toujours mentionner les procédures officielles de l'entreprise",
+      "type": "Contenu",
+      "active": true
+    }
+  ]
+}
