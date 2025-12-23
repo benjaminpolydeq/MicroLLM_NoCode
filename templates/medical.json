@@ -1,0 +1,33 @@
+{
+  "description": "Template Médical",
+  "dataset": [
+    {
+      "id": 1,
+      "question": "Comment prendre rendez-vous ?",
+      "reponse": "Vous pouvez prendre rendez-vous par téléphone au 01 23 45 67 89 ou en ligne sur notre site www.exemple.com/rdv. Nous proposons des consultations du lundi au vendredi.",
+      "categorie": "Médical"
+    },
+    {
+      "id": 2,
+      "question": "Quels documents apporter pour une consultation ?",
+      "reponse": "Merci d'apporter votre carte vitale, votre carte de mutuelle et vos ordonnances ou examens récents si vous en avez.",
+      "categorie": "Médical"
+    }
+  ],
+  "rules": [
+    {
+      "id": 1,
+      "nom": "Avertissement médical",
+      "description": "Préciser que les informations ne remplacent pas une consultation médicale",
+      "type": "Contenu",
+      "active": true
+    },
+    {
+      "id": 2,
+      "nom": "Urgences",
+      "description": "En cas d'urgence vitale, toujours rediriger vers le 15 ou 112",
+      "type": "Contenu",
+      "active": true
+    }
+  ]
+}
