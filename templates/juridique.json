@@ -1,0 +1,33 @@
+{
+  "description": "Template Juridique",
+  "dataset": [
+    {
+      "id": 1,
+      "question": "Quelles sont les mentions légales ?",
+      "reponse": "Nos mentions légales sont disponibles sur notre site web à l'adresse www.exemple.com/mentions-legales. Elles incluent les informations sur l'éditeur, l'hébergeur et la protection des données.",
+      "categorie": "Juridique"
+    },
+    {
+      "id": 2,
+      "question": "Quelle est votre politique de confidentialité ?",
+      "reponse": "Notre politique de confidentialité détaille comment nous collectons, utilisons et protégeons vos données personnelles conformément au RGPD. Elle est consultable sur www.exemple.com/confidentialite.",
+      "categorie": "Juridique"
+    }
+  ],
+  "rules": [
+    {
+      "id": 1,
+      "nom": "Disclaimer",
+      "description": "Toujours ajouter une clause précisant que les informations sont données à titre informatif et ne constituent pas un conseil juridique",
+      "type": "Contenu",
+      "active": true
+    },
+    {
+      "id": 2,
+      "nom": "Références",
+      "description": "Citer les sources légales et réglementaires pertinentes",
+      "type": "Contenu",
+      "active": true
+    }
+  ]
+}
