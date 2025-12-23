@@ -20,7 +20,7 @@ Le projet inclut des **templates métiers pré-remplis** et un **mini-entraînem
 
 ## Structure du projet
 
-MicroLLM-NoCode/ ├─ app.py                 # Interface principale Streamlit ├─ export_github.py       # Script pour push dataset et règles sur GitHub ├─ requirements.txt       # Dépendances Python ├─ .replit                # Configuration Replit pour lancer l'app ├─ data/                  # Contient le ou les datasets │  └─ default.json ├─ rules/                 # Contient les règles initiales │  └─ default.json └─ templates/             # Templates pré-remplis pour différents métiers ├─ rh.json ├─ juridique.json ├─ medical.json └─ support.json
+MicroLLM-NoCode/ ├─ app.py                 # Interface principale Streamlit ├─ export_github.py       # Script pour push dataset et règles sur GitHub ├─ requirements.txt       # Dépendances Python ├─ .streamlit               # Configuration streamlit pour lancer l'app ├─ data/                  # Contient le ou les datasets │  └─ default.json ├─ rules/                 # Contient les règles initiales │  └─ default.json └─ templates/             # Templates pré-remplis pour différents métiers ├─ rh.json ├─ juridique.json ├─ medical.json └─ support.json
 
 - **data/** → datasets personnalisables par l’utilisateur  
 - **rules/** → règles métiers simples pour adapter le modèle  
@@ -30,10 +30,10 @@ MicroLLM-NoCode/ ├─ app.py                 # Interface principale Streamlit 
 
 ---
 
-## Démarrage rapide sur Replit
+## Démarrage rapide sur Streamlit 
 
 1. Importer le projet depuis GitHub ou téléverser le ZIP sur Replit.  
-2. Vérifier que le fichier `.replit` est présent (configure le lancement Streamlit).  
+2. Vérifier que le fichier `.streamlit` est présent (configure le lancement Streamlit).  
 3. Cliquer sur **Run** → MicroLLM Studio s’ouvre automatiquement.  
 4. Charger un **template métier** pour démarrer rapidement.  
 5. Ajouter des Q/R ou des règles directement dans l’interface.  
