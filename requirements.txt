@@ -1,4 +1,5 @@
 streamlit>=1.28.0
-pandas>=2.0.0
-plotly>=5.17.0
-numpy>=1.24.0
+torch>=2.0.0  # Si vous utilisez PyTorch
+transformers>=4.30.0  # Si vous utilisez Hugging Face
+numpy>=1.21.0
+pandas>=1.3.0
