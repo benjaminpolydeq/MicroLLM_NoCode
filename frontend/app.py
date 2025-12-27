@@ -1,14 +1,10 @@
 import streamlit as st
 import requests
-import os
 
 st.set_page_config(page_title="MicroLLM Studio", layout="wide")
 st.title("MicroLLM Studio - Frontend MVP")
 
-# Clé API
 API_KEY = st.text_input("Enter your API Key", "")
-
-# URL backend
 BACKEND_URL = st.text_input("Backend URL", "http://127.0.0.1:8000")
 
 if st.button("Check Backend Health"):
