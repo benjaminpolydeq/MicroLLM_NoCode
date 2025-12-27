@@ -44,3 +44,17 @@ env/
 *.tmp
 *.bak
 *.cache
+# Environment
+.env
+.env.local
+
+# Database
+postgres_data/
+redis_data/
+
+# Docker
+docker-compose.override.yml
+
+# User data
+data/*/
+!data/default.json
