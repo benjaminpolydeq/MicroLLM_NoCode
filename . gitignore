@@ -44,3 +44,5 @@ env/
 *.tmp
 *.bak
 *.cache
+# Models / weights
+models/arslm/*
