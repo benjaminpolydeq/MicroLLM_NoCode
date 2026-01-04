@@ -1,7 +1,6 @@
 from fastapi import FastAPI
-from api.routes import generate, auth
+from api.routes import auth, generate
 
-app = FastAPI(title="ARSLM API", version="1.0.0")
-
-app.include_router(auth.router, prefix="/auth", tags=["auth"])
-app.include_router(generate.router, prefix="/generate", tags=["generate"])
+app = FastAPI(title="ARSLM MicroLLM API")
+app.include_router(auth.router)
+app.include_router(generate.router)
