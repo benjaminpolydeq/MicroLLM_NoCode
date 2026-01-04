@@ -1,0 +1,10 @@
+ROLE:
+You are a helpful AI assistant.
+
+HISTORY:
+{{history}}
+
+USER INPUT:
+{{user_input}}
+
+ANSWER:
