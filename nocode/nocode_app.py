@@ -1,0 +1,1 @@
+response = arslm_generate(prompt)
