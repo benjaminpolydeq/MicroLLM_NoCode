@@ -1,16 +1,21 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
-from core.engine.arslm_engine import generate_text
-from api.routes.auth import get_current_user
+from core.base_model.arslm.model import ARSLMModel
 
 router = APIRouter()
+
+# Load model once (ARSLM real)
+model = ARSLMModel(model_path="gpt2", device="cpu")  # change path for your ARSLM weights
 
 class GenerateRequest(BaseModel):
     prompt: str
     max_tokens: int = 256
     temperature: float = 0.7
 
-@router.post("/")
-def generate(data: GenerateRequest, user=Depends(get_current_user)):
-    output = generate_text(prompt=data.prompt, max_tokens=data.max_tokens, temperature=data.temperature)
-    return {"tenant_id": user["tenant_id"], "output": output}
+@router.post("/generate")
+def generate(request: GenerateRequest, authorization: str = Header(None)):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    # Call ARSLM real model
+    output = model.generate(request.prompt, max_tokens=request.max_tokens, temperature=request.temperature)
+    return {"output": output}
