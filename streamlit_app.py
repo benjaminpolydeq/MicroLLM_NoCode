@@ -1,90 +1,211 @@
+"""
+MicroLLM Studio - Streamlit Dashboard
+No-Code interface with Chat + Document Interaction (ARSLM-ready)
+"""
+
 import streamlit as st
-import requests
+import pandas as pd
+import plotly.graph_objects as go
 from datetime import datetime
+import time
+import requests
+
+# ===============================
+# PAGE CONFIG
+# ===============================
+st.set_page_config(
+    page_title="MicroLLM Studio",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 API_URL = "http://127.0.0.1:8000"
-ACCESS_TOKEN = ""
 
-st.set_page_config(page_title="MicroLLM Studio", page_icon="🤖", layout="wide")
+# ===============================
+# CUSTOM CSS
+# ===============================
+st.markdown("""
+<style>
+.main-header {
+    font-size: 3rem;
+    font-weight: bold;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.metric-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+    border-radius: 10px;
+    color: white;
+}
+</style>
+""", unsafe_allow_html=True)
 
-if 'models' not in st.session_state:
+# ===============================
+# SESSION STATE
+# ===============================
+if "models" not in st.session_state:
     st.session_state.models = []
-if 'training_history' not in st.session_state:
+
+if "training_history" not in st.session_state:
     st.session_state.training_history = []
-if 'active_training' not in st.session_state:
-    st.session_state.active_training = False
 
-def login(username: str):
-    global ACCESS_TOKEN
-    response = requests.post(f"{API_URL}/auth/login", json={"username": username})
-    if response.status_code == 200:
-        ACCESS_TOKEN = response.json()["access_token"]
-        st.success(f"Logged in as {username}")
-    else:
-        st.error("Login failed")
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-def generate(prompt: str, max_tokens: int = 256, temperature: float = 0.7):
-    if not ACCESS_TOKEN:
-        st.warning("Login first")
-        return ""
-    headers = {"Authorization": ACCESS_TOKEN}
-    payload = {"prompt": prompt, "max_tokens": max_tokens, "temperature": temperature}
-    response = requests.post(f"{API_URL}/generate", headers=headers, json=payload)
-    if response.status_code == 200:
-        return response.json()["output"]
-    st.error("Failed to generate")
-    return ""
-
-def start_training(model_name: str, model_type: str):
-    st.session_state.models.append({
-        "name": model_name,
-        "type": model_type,
-        "accuracy": "Training...",
-        "date": datetime.now().strftime("%Y-%m-%d %H:%M")
-    })
-    st.session_state.training_history.append({
-        "model": model_name,
-        "started": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "status": "running"
-    })
-    st.session_state.active_training = True
-    st.success(f"Training started for {model_name}!")
-
-# Sidebar
+# ===============================
+# SIDEBAR
+# ===============================
 with st.sidebar:
-    st.image("https://via.placeholder.com/200x80/667eea/ffffff?text=MicroLLM", width=200)
+    st.image(
+        "https://via.placeholder.com/200x80/667eea/ffffff?text=MicroLLM",
+        width=200
+    )
+
+    page = st.radio(
+        "Navigation",
+        [
+            "🏠 Dashboard",
+            "🎓 Training",
+            "🔍 Models",
+            "💬 Chat",
+            "⚙️ Settings",
+        ],
+        label_visibility="collapsed"
+    )
+
     st.markdown("---")
-    username = st.text_input("Username")
-    if st.button("Login"):
-        login(username)
-    max_tokens = st.slider("Max Tokens", 32, 1024, 256)
-    temperature = st.slider("Temperature", 0.1, 1.0, 0.7)
-    status = "🟢 Active" if st.session_state.active_training else "⚪ Idle"
-    st.markdown(f"**Status:** {status}")
+    st.markdown("### System Status")
+    st.markdown("🟢 Active")
+    st.markdown(f"**Models:** {len(st.session_state.models)}")
+    st.markdown(f"**Training Jobs:** {len(st.session_state.training_history)}")
 
-# Tabs
-tabs = st.tabs(["🏠 Dashboard", "📝 No-Code", "🎓 Training", "📊 Analytics"])
+# ===============================
+# DASHBOARD
+# ===============================
+if page == "🏠 Dashboard":
+    st.markdown('<p class="main-header">MicroLLM Studio</p>', unsafe_allow_html=True)
+    st.markdown("Democratizing Proprietary AI – On-Prem & No-Code")
 
-with tabs[0]:
-    st.subheader("Dashboard")
-    st.write(st.session_state.models[-3:])
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Active Models", len(st.session_state.models))
+    col2.metric("Training Jobs", len(st.session_state.training_history))
+    col3.metric("CPU Usage", "Low")
+    col4.metric("Security", "On-Prem")
 
-with tabs[1]:
-    st.subheader("No-Code Interface")
-    prompt = st.text_area("Enter prompt:")
-    if st.button("Generate"):
-        if prompt.strip():
-            output = generate(prompt, max_tokens=max_tokens, temperature=temperature)
-            st.text(output)
+    st.markdown("---")
 
-with tabs[2]:
-    st.subheader("Create Training Job")
+    epochs = list(range(1, 11))
+    train_loss = [2.5, 2.1, 1.8, 1.6, 1.4, 1.3, 1.2, 1.1, 1.05, 1.0]
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=epochs, y=train_loss, name="Training Loss"))
+    fig.update_layout(height=400)
+
+    st.plotly_chart(fig, use_container_width=True)
+
+# ===============================
+# TRAINING (UI ONLY)
+# ===============================
+elif page == "🎓 Training":
+    st.markdown('<p class="main-header">Training (No-Code)</p>', unsafe_allow_html=True)
+
     model_name = st.text_input("Model Name")
-    model_type = st.selectbox("Model Type", ["ARSLM-Micro", "ARSLM-Small", "ARSLM-Medium", "ARSLM-Large"])
-    if st.button("Start Training"):
-        if model_name.strip():
-            start_training(model_name, model_type)
+    model_type = st.selectbox(
+        "Model Type",
+        ["ARSLM-Micro", "ARSLM-Small", "ARSLM-Medium"]
+    )
 
-with tabs[3]:
-    st.subheader("Training Analytics")
-    st.dataframe(st.session_state.training_history)
+    if st.button("🚀 Start Training"):
+        st.session_state.models.append({
+            "name": model_name,
+            "type": model_type,
+            "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "accuracy": "Training"
+        })
+        st.success("Training job registered (simulation)")
+
+# ===============================
+# MODELS
+# ===============================
+elif page == "🔍 Models":
+    st.markdown('<p class="main-header">Models</p>', unsafe_allow_html=True)
+
+    if not st.session_state.models:
+        st.info("No models yet.")
+    else:
+        for m in st.session_state.models:
+            st.markdown(f"### {m['name']}")
+            st.write(m)
+
+# ===============================
+# CHAT + DOCUMENTS (CORE FEATURE)
+# ===============================
+elif page == "💬 Chat":
+    st.markdown('<p class="main-header">MicroLLM Chat</p>', unsafe_allow_html=True)
+    st.caption("Chat with your documents – 100% on-prem")
+
+    # ---- Document Upload (No-Code)
+    with st.expander("📄 Upload documents"):
+        files = st.file_uploader(
+            "Upload files",
+            type=["pdf", "txt", "csv", "docx"],
+            accept_multiple_files=True
+        )
+
+        if files:
+            for f in files:
+                st.success(f"Loaded: {f.name}")
+
+    # ---- Chat History
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    # ---- Chat Input
+    prompt = st.chat_input("Ask MicroLLM...")
+
+    if prompt:
+        st.session_state.messages.append({
+            "role": "user",
+            "content": prompt
+        })
+
+        with st.chat_message("assistant"):
+            with st.spinner("MicroLLM is thinking..."):
+                try:
+                    r = requests.post(
+                        f"{API_URL}/chat",
+                        json={"prompt": prompt},
+                        timeout=60
+                    )
+                    response = r.json().get("response", "No response")
+                except Exception as e:
+                    response = f"⚠️ Backend not reachable: {e}"
+
+                st.markdown(response)
+
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": response
+        })
+
+# ===============================
+# SETTINGS
+# ===============================
+elif page == "⚙️ Settings":
+    st.markdown('<p class="main-header">Settings</p>', unsafe_allow_html=True)
+    st.checkbox("Enable encryption", value=True)
+    st.checkbox("Audit logging", value=True)
+
+# ===============================
+# FOOTER
+# ===============================
+st.markdown("---")
+st.markdown("""
+<div style="text-align:center;color:#777">
+MicroLLM Studio · Built on ARSLM · On-Prem No-Code AI
+</div>
+""", unsafe_allow_html=True)
