@@ -1,17 +1,20 @@
 """
-MicroLLM Studio - Streamlit Dashboard + Chat
-CPU-light version using DistilGPT2 (HuggingFace)
+MicroLLM Studio - Streamlit Dashboard
+No-Code interface with Chat + Document Interaction (ARSLM-ready)
 """
-
 import streamlit as st
+from transformers import AutoTokenizer, AutoModelForCausalLM
+import torch
 import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime
-import time
+import requests
+import json
 import os
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
-# ----------------- Page Configuration -----------------
+# ===============================
+# PAGE CONFIG
+# ===============================
 st.set_page_config(
     page_title="MicroLLM Studio",
     page_icon="🤖",
@@ -19,123 +22,271 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ----------------- Custom CSS -----------------
+# ===============================
+# LOAD MODEL
+# ===============================
+@st.cache_resource
+def load_local_model():
+    tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
+    model = AutoModelForCausalLM.from_pretrained("distilgpt2")
+    return tokenizer, model
+
+tokenizer, model = load_local_model()
+API_URL = "http://127.0.0.1:8000"
+
+# ===============================
+# CUSTOM CSS
+# ===============================
 st.markdown("""
 <style>
-    .main-header {font-size:3rem; font-weight:bold;
+.main-header {
+    font-size: 3rem;
+    font-weight: bold;
     background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom:0.5rem;}
-    .metric-card {background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding:20px; border-radius:10px; color:white; margin:10px 0;}
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.metric-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+    border-radius: 10px;
+    color: white;
+}
 </style>
 """, unsafe_allow_html=True)
 
-# ----------------- Session State -----------------
-if 'training_history' not in st.session_state: st.session_state.training_history = []
-if 'models' not in st.session_state: st.session_state.models = []
-if 'active_training' not in st.session_state: st.session_state.active_training = False
-if 'chat_history' not in st.session_state: st.session_state.chat_history = []
+# ===============================
+# SESSION STATE
+# ===============================
+if "models" not in st.session_state:
+    st.session_state.models = []
+if "training_history" not in st.session_state:
+    st.session_state.training_history = []
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-# ----------------- Sidebar -----------------
+# ===============================
+# SIDEBAR
+# ===============================
 with st.sidebar:
-    st.image("https://via.placeholder.com/200x80/667eea/ffffff?text=MicroLLM", width=200)
+    st.image(
+        "https://via.placeholder.com/200x80/667eea/ffffff?text=MicroLLM",
+        width=200
+    )
+
+    page = st.radio(
+        "Navigation",
+        ["🏠 Dashboard", "🎓 Training", "🔍 Models", "💬 Chat", "📊 Analytics", "⚙️ Settings"],
+        label_visibility="collapsed"
+    )
+
     st.markdown("---")
-    page = st.radio("Navigation",
-                    ["🏠 Dashboard", "🎓 Training", "🔍 Models", "💬 Chat", "📊 Analytics", "⚙️ Settings"],
-                    label_visibility="collapsed")
-    st.markdown("---")
-    st.markdown(f"**Status:** {'🟢 Active' if st.session_state.active_training else '⚪ Idle'}")
+    st.markdown("### System Status")
+    st.markdown("🟢 Active")
     st.markdown(f"**Models:** {len(st.session_state.models)}")
     st.markdown(f"**Training Jobs:** {len(st.session_state.training_history)}")
 
-# ----------------- Dashboard -----------------
+# ===============================
+# DASHBOARD
+# ===============================
 if page == "🏠 Dashboard":
-    st.markdown('<p class="main-header">MicroLLM Studio Dashboard</p>', unsafe_allow_html=True)
-    st.markdown("Democratizing Proprietary AI - Train specialized language models on limited private data")
-    
+    st.markdown('<p class="main-header">MicroLLM Studio</p>', unsafe_allow_html=True)
+    st.markdown("Democratizing Proprietary AI – On-Prem & No-Code")
+
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Active Models", len(st.session_state.models), delta="+2 this week")
-    col2.metric("Training Jobs", len(st.session_state.training_history), delta="3 completed")
-    col3.metric("GPU Usage", "0%", delta="-")  # CPU only
-    col4.metric("Avg. Accuracy", "87.3%", delta="+2.1%")
-    
+    col1.metric("Active Models", len(st.session_state.models))
+    col2.metric("Training Jobs", len(st.session_state.training_history))
+    col3.metric("CPU Usage", "Low")
+    col4.metric("Security", "On-Prem")
+
     st.markdown("---")
-    st.subheader("📈 Training Progress Example")
+    # Dummy training loss
     epochs = list(range(1, 11))
-    train_loss = [2.5,2.1,1.8,1.6,1.4,1.3,1.2,1.1,1.05,1.0]
-    val_loss = [2.6,2.2,1.9,1.7,1.5,1.4,1.3,1.2,1.15,1.1]
+    train_loss = [2.5, 2.1, 1.8, 1.6, 1.4, 1.3, 1.2, 1.1, 1.05, 1.0]
+
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=epochs, y=train_loss, mode='lines+markers', name='Training Loss'))
-    fig.add_trace(go.Scatter(x=epochs, y=val_loss, mode='lines+markers', name='Validation Loss'))
-    fig.update_layout(title="Loss Over Epochs", xaxis_title="Epoch", yaxis_title="Loss", hovermode='x unified', height=400)
+    fig.add_trace(go.Scatter(x=epochs, y=train_loss, name="Training Loss"))
+    fig.update_layout(height=400)
     st.plotly_chart(fig, use_container_width=True)
 
-# ----------------- Training -----------------
+# ===============================
+# TRAINING
+# ===============================
 elif page == "🎓 Training":
-    st.markdown('<p class="main-header">Model Training</p>', unsafe_allow_html=True)
-    st.info("Training simulation - on Termux we only mock training for now.")
-    model_name = st.text_input("Model Name", placeholder="my-custom-model")
-    if st.button("🚀 Start Training"):
-        if model_name:
-            st.session_state.models.append({
-                'name': model_name, 'type': 'DistilGPT2', 'size':'82M', 'accuracy':'Training...',
-                'date': datetime.now().strftime("%Y-%m-%d %H:%M"), 'status':'training'
-            })
-            st.session_state.training_history.append({
-                'model': model_name, 'started': datetime.now().strftime("%Y-%m-%d %H:%M"),
-                'status':'running'
-            })
-            st.session_state.active_training = True
-            st.success(f"✅ Training started for {model_name}")
-        else:
-            st.error("❌ Please provide a model name")
+    st.markdown('<p class="main-header">Training (No-Code)</p>', unsafe_allow_html=True)
 
-# ----------------- Models -----------------
+    model_name = st.text_input("Model Name")
+    model_type = st.selectbox(
+        "Model Type",
+        ["ARSLM-Micro", "ARSLM-Small", "ARSLM-Medium"]
+    )
+
+    if st.button("🚀 Start Training") and model_name:
+        # Ajouter modèle à session
+        st.session_state.models.append({
+            "name": model_name,
+            "type": model_type,
+            "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "status": "Training"
+        })
+
+        # Créer / mettre à jour training_history.json
+        history = []
+        if os.path.exists("training_history.json"):
+            with open("training_history.json", "r") as f:
+                history = json.load(f)
+
+        # Simuler quelques epochs (à remplacer par vrai training metrics)
+        for epoch in range(1, 11):
+            loss = round(2.5 / (0.5*epoch + 1), 3)
+            accuracy = round(0.5 + 0.05*epoch, 3)
+            history.append({
+                "model": model_name,
+                "type": model_type,
+                "epoch": epoch,
+                "loss": loss,
+                "accuracy": accuracy,
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M")
+            })
+
+        with open("training_history.json", "w") as f:
+            json.dump(history, f, indent=4)
+
+        st.success(f"Training job for {model_name} started and metrics saved!")
+
+# ===============================
+# MODELS
+# ===============================
 elif page == "🔍 Models":
-    st.markdown('<p class="main-header">Model Management</p>', unsafe_allow_html=True)
-    if len(st.session_state.models) == 0:
-        st.info("No models available. Start training to create one.")
-    else:
-        for model in st.session_state.models:
-            st.markdown(f"### {model['name']}")
-            st.caption(f"Type: {model['type']}")
-            st.metric("Size", model['size'])
-            st.metric("Accuracy", model['accuracy'])
-            st.markdown("---")
+    st.markdown('<p class="main-header">Models</p>', unsafe_allow_html=True)
 
-# ----------------- Chat -----------------
+    if not st.session_state.models:
+        st.info("No models yet.")
+    else:
+        for m in st.session_state.models:
+            st.markdown(f"### {m['name']}")
+            st.write(m)
+
+# ===============================
+# CHAT + DOCUMENTS
+# ===============================
 elif page == "💬 Chat":
     st.markdown('<p class="main-header">MicroLLM Chat</p>', unsafe_allow_html=True)
-    st.info("Chat with your model (CPU-light version). Upload documents to interact with them.")
-    
-    uploaded_file = st.file_uploader("Upload a document (.txt)", type=['txt'])
-    if uploaded_file:
-        text_data = uploaded_file.read().decode("utf-8")
-        st.session_state.chat_history.append({"role":"system","content":text_data})
-        st.success("📄 Document loaded successfully!")
+    st.caption("Local • On-device • No-Code • ARSLM-compatible")
 
-    # Load DistilGPT2 pipeline
-    @st.cache_resource
-    def load_model():
-        tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
-        model = AutoModelForCausalLM.from_pretrained("distilgpt2")
-        return pipeline("text-generation", model=model, tokenizer=tokenizer)
+    # Upload documents
+    with st.expander("📄 Upload documents"):
+        uploaded_files = st.file_uploader(
+            "Upload files",
+            type=["pdf", "txt", "csv", "docx"],
+            accept_multiple_files=True
+        )
+        if uploaded_files:
+            for f in uploaded_files:
+                st.success(f"Loaded: {f.name}")
 
-    generator = load_model()
+    # Chat history
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
 
-    user_input = st.text_input("You:", key="user_input")
-    if st.button("Send") and user_input:
-        st.session_state.chat_history.append({"role":"user","content":user_input})
-        # Prepare prompt from document + chat
-        prompt = "\n".join([m["content"] for m in st.session_state.chat_history])
-        result = generator(prompt, max_length=200, do_sample=True)[0]["generated_text"]
-        st.session_state.chat_history.append({"role":"bot","content":result})
-    
-    # Display chat
-    for message in st.session_state.chat_history[-10:]:
-        role = "👤 You" if message["role"]=="user" else "🤖 MicroLLM"
-        st.markdown(f"**{role}:** {message['content']}")
+    # Chat input
+    user_input = st.chat_input("Ask MicroLLM...")
+    if user_input:
+        st.session_state.messages.append({
+            "role": "user",
+            "content": user_input
+        })
 
-# ----------------- Footer -----------------
+        with st.chat_message("assistant"):
+            with st.spinner("MicroLLM is thinking..."):
+                try:
+                    r = requests.post(
+                        f"{API_URL}/chat",
+                        json={"prompt": user_input},
+                        timeout=60
+                    )
+                    response = r.json().get("response", "No response")
+                except Exception:
+                    # Fallback local
+                    inputs = tokenizer.encode(user_input, return_tensors="pt")
+                    outputs = model.generate(
+                        inputs,
+                        max_new_tokens=120,
+                        temperature=0.7,
+                        do_sample=True
+                    )
+                    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+                st.markdown(response)
+
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": response
+        })
+
+# ===============================
+# ANALYTICS (REEL)
+# ===============================
+elif page == "📊 Analytics":
+    st.markdown('<p class="main-header">Analytics</p>', unsafe_allow_html=True)
+    st.caption("Visualize model and training performance")
+
+    if not os.path.exists("training_history.json"):
+        st.info("No training history yet. Start a model training first!")
+    else:
+        with open("training_history.json", "r") as f:
+            history = json.load(f)
+
+        if not history:
+            st.info("No training data found.")
+        else:
+            df_history = pd.DataFrame(history)
+            st.markdown("### 🏋️ Training History")
+            st.dataframe(df_history)
+
+            # Loss chart
+            st.markdown("### 📉 Training Loss")
+            fig_loss = go.Figure()
+            for model_name in df_history['model'].unique():
+                df_model = df_history[df_history['model'] == model_name]
+                fig_loss.add_trace(go.Scatter(
+                    x=df_model['epoch'],
+                    y=df_model['loss'],
+                    mode='lines+markers',
+                    name=model_name
+                ))
+            fig_loss.update_layout(xaxis_title="Epochs", yaxis_title="Loss", height=400)
+            st.plotly_chart(fig_loss, use_container_width=True)
+
+            # Accuracy chart
+            st.markdown("### ✅ Model Accuracy")
+            fig_acc = go.Figure()
+            for model_name in df_history['model'].unique():
+                df_model = df_history[df_history['model'] == model_name]
+                fig_acc.add_trace(go.Scatter(
+                    x=df_model['epoch'],
+                    y=df_model['accuracy'],
+                    mode='lines+markers',
+                    name=model_name
+                ))
+            fig_acc.update_layout(xaxis_title="Epochs", yaxis_title="Accuracy", height=400, yaxis=dict(range=[0,1]))
+            st.plotly_chart(fig_acc, use_container_width=True)
+
+# ===============================
+# SETTINGS
+# ===============================
+elif page == "⚙️ Settings":
+    st.markdown('<p class="main-header">Settings</p>', unsafe_allow_html=True)
+    st.checkbox("Enable encryption", value=True)
+    st.checkbox("Audit logging", value=True)
+
+# ===============================
+# FOOTER
+# ===============================
 st.markdown("---")
-st.markdown("<div style='text-align:center;color:#666;padding:20px;'>MicroLLM Studio v1.0 | CPU-light | No-Code Version</div>", unsafe_allow_html=True)
+st.markdown("""
+<div style="text-align:center;color:#777">
+MicroLLM Studio · Built on ARSLM · On-Prem No-Code AI
+</div>
+""", unsafe_allow_html=True)
