@@ -1,5 +1,5 @@
 """
-MicroLLM Studio - Streamlit Dashboard (Pro UI)
+MicroLLM Studio - Streamlit Dashboard (Pro UI, ARSLM Base Model, Chunking Chat)
 No-Code interface with Chat + Document Interaction (ARSLM-ready)
 """
 import streamlit as st
@@ -13,7 +13,6 @@ import json
 import os
 import PyPDF2
 import docx
-import io
 
 # ===============================
 # PAGE CONFIG
@@ -24,6 +23,21 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# ===============================
+# ARSLM Base Model Info
+# ===============================
+ARSLM_INFO = {
+    "name": "ARSLM",
+    "description": (
+        "ARSLM – Lightweight, Efficient & Secure AI\n"
+        "ARSLM is a compact small language model built for real-world applications, "
+        "combining speed, efficiency, and adaptability. Designed to run on low-resource "
+        "environments or on-premise, it ensures data privacy while providing intelligent "
+        "text generation and chat capabilities. Ideal for companies handling sensitive "
+        "data like healthcare, legal, or defense sectors."
+    )
+}
 
 # ===============================
 # LOAD MODEL
@@ -109,6 +123,11 @@ if page == "🏠 Dashboard":
     st.markdown('<p class="main-header">MicroLLM Studio</p>', unsafe_allow_html=True)
     st.markdown("Democratizing Proprietary AI – On-Prem & No-Code")
 
+    # -------------------------------
+    # ARSLM info
+    st.markdown("### Default Base Model")
+    st.info(f"**{ARSLM_INFO['name']}**\n\n{ARSLM_INFO['description']}")
+
     col1, col2, col3, col4 = st.columns(4)
     col1.markdown(f'<div class="metric-card">Active Models<br><h2>{len(st.session_state.models)}</h2></div>', unsafe_allow_html=True)
     col2.markdown(f'<div class="metric-card">Training Jobs<br><h2>{len(st.session_state.training_history)}</h2></div>', unsafe_allow_html=True)
@@ -119,7 +138,6 @@ if page == "🏠 Dashboard":
     # Dummy training loss
     epochs = list(range(1, 11))
     train_loss = [2.5, 2.1, 1.8, 1.6, 1.4, 1.3, 1.2, 1.1, 1.05, 1.0]
-
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=epochs, y=train_loss, name="Training Loss", mode="lines+markers"))
     fig.update_layout(height=400, hovermode="x unified")
@@ -131,10 +149,11 @@ if page == "🏠 Dashboard":
 elif page == "🎓 Training":
     st.markdown('<p class="main-header">Training (No-Code)</p>', unsafe_allow_html=True)
 
-    model_name = st.text_input("Model Name")
+    model_name = st.text_input("Model Name", value=ARSLM_INFO['name'])
     model_type = st.selectbox(
         "Model Type",
-        ["ARSLM-Micro", "ARSLM-Small", "ARSLM-Medium"]
+        ["ARSLM – Lightweight (Default)", "ARSLM-Small", "ARSLM-Medium"],
+        index=0
     )
 
     if st.button("🚀 Start Training") and model_name:
@@ -181,11 +200,11 @@ elif page == "🔍 Models":
             st.write(m)
 
 # ===============================
-# CHAT + DOCUMENTS
+# CHAT + DOCUMENTS (CHUNKING)
 # ===============================
 elif page == "💬 Chat":
     st.markdown('<p class="main-header">MicroLLM Chat</p>', unsafe_allow_html=True)
-    st.caption("Local • On-device • No-Code • ARSLM-compatible")
+    st.caption(f"Chatting with ARSLM ({ARSLM_INFO['name']}) – Local, On-device, No-Code")
 
     document_texts = []
 
@@ -199,9 +218,11 @@ elif page == "💬 Chat":
             for f in uploaded_files:
                 st.success(f"Loaded: {f.name}")
 
+                # TXT
                 if f.type == "text/plain":
                     text = f.read().decode("utf-8")
                     document_texts.append(text)
+                # PDF
                 elif f.type == "application/pdf":
                     pdf_reader = PyPDF2.PdfReader(f)
                     text = ""
@@ -209,10 +230,12 @@ elif page == "💬 Chat":
                         t = page.extract_text()
                         if t: text += t + "\n"
                     document_texts.append(text)
+                # DOCX
                 elif f.type in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/msword"]:
                     doc = docx.Document(f)
                     text = "\n".join([p.text for p in doc.paragraphs])
                     document_texts.append(text)
+                # CSV
                 elif f.type == "text/csv":
                     df = pd.read_csv(f)
                     text = df.to_csv(index=False)
@@ -232,16 +255,25 @@ elif page == "💬 Chat":
         with st.chat_message("assistant"):
             with st.spinner("MicroLLM is thinking..."):
                 try:
-                    full_prompt = user_input
+                    # Combine ARSLM + documents + input
+                    full_prompt = f"[Using {ARSLM_INFO['name']}] {user_input}"
                     if document_texts:
                         full_prompt += "\n\nContext:\n" + "\n".join(document_texts)
 
-                    r = requests.post(f"{API_URL}/chat", json={"prompt": full_prompt}, timeout=60)
-                    response = r.json().get("response", "No response")
-                except Exception:
-                    inputs = tokenizer.encode(full_prompt, return_tensors="pt")
-                    outputs = model.generate(inputs, max_new_tokens=120, temperature=0.7, do_sample=True)
+                    # Chunking GPT-2
+                    max_len = 1024
+                    input_ids = tokenizer(full_prompt, return_tensors="pt")["input_ids"]
+                    if input_ids.size(1) > max_len:
+                        input_ids = input_ids[:, -max_len:]  # keep last tokens
+                    outputs = model.generate(
+                        input_ids,
+                        max_new_tokens=120,
+                        temperature=0.7,
+                        do_sample=True
+                    )
                     response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+                except Exception as e:
+                    response = f"⚠️ Error generating response: {e}"
 
                 st.markdown(f'<div class="assistant-msg">{response}</div>', unsafe_allow_html=True)
                 st.session_state.messages.append({"role":"assistant","content":response})
