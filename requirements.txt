@@ -1,4 +1,10 @@
-streamlit==1.27.0
-PyPDF2==3.0.0
-python-docx==0.8.11
-pandas==2.1.0
+# Streamlit
+streamlit>=1.40.0
+
+# Data processing
+pandas>=2.0.0
+
+# Visualization
+plotly>=5.18.0
+
+# Lightweight - No PyTorch required!
