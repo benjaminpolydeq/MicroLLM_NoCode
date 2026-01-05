@@ -858,6 +858,20 @@ trainer = ARSLMTrainer(
 - ε = 5.0: Moderate privacy
 - ε = 10.0: Weak privacy
 
-### Encryption
+# MicroLLM Studio Pro
 
-All s
+🤖 **MicroLLM Studio** est une interface **No-Code** pour LLM (GPT2/ARSLM-ready) avec :
+
+- Chat interactif avec documents (TXT, PDF, DOCX, CSV)
+- Dashboard coloré et métriques en temps réel
+- Training simulé avec visualisation loss & accuracy
+- Analytique et suivi de modèles
+- Déploiement **on-premise** ou **Streamlit Cloud**
+- **ARSLM intégré comme modèle de base** (Lightweight, Efficient & Secure AI)
+
+## 🚀 Installation
+
+1. Cloner le repo
+```bash
+git clone <YOUR_REPO_URL>
+cd MicroLLM_Studio
