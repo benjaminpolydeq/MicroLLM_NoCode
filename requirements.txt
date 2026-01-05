@@ -1,20 +1,9 @@
-# Streamlit UI
 streamlit>=1.24.0
-
-# Transformers (pour ARSLM / GPT2)
 transformers>=4.40.0
 torch>=2.1.0
-
-# Data processing
 pandas>=2.1.0
 numpy>=1.26.0
-
-# Plotly pour les graphiques interactifs
 plotly>=5.16.0
-
-# Documents
 PyPDF2>=3.1.0
 python-docx>=0.8.12
-
-# Utils
 requests>=2.31.0
