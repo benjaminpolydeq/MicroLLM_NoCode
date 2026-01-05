@@ -1,5 +1,20 @@
-streamlit>=1.30.0
-pandas>=2.0.0
-plotly>=5.0.0
-PyPDF2>=3.0.0
-python-docx>=0.8.11
+# Streamlit core
+streamlit>=1.25.0
+
+# Hugging Face Transformers & PyTorch
+torch>=2.1.0
+transformers>=4.40.0
+
+# Data handling
+pandas>=2.1.0
+numpy>=1.25.0
+
+# Visualization
+plotly>=5.20.0
+
+# Document processing
+PyPDF2>=3.1.0
+python-docx>=0.8.12
+
+# Optional utilities
+requests>=2.31.0
