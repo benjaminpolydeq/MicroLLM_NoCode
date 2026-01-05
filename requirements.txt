@@ -1,7 +1,9 @@
-streamlit==1.27.0
-pandas==2.1.0
-plotly==5.16.1
-PyPDF2==3.1.0
-python-docx==0.8.12
-langdetect==1.0.9
+streamlit>=1.30.0
+pandas>=2.1.0
+plotly>=5.15.0
+langdetect>=1.0.9
+tqdm>=4.66.1
+PyPDF2>=3.0.1
+python-docx>=1.1.2
+python-magic-bin>=0.4.27
 googletrans==4.0.0-rc1
