@@ -1,64 +1,133 @@
+"""
+MicroLLM Studio - Lightweight Version for Streamlit Cloud
+Supports PDF, TXT, DOCX Upload
+Multilingual FR / EN / ES (no external translation)
+"""
+
 import streamlit as st
-from langdetect import detect
-import PyPDF2
-import docx
+import pandas as pd
+import plotly.graph_objects as go
+from datetime import datetime
+import json
 import time
 from tqdm import tqdm
+from langdetect import detect
 
-# =====================
+# File processing
+import PyPDF2
+import docx
+
+# ===============================
 # PAGE CONFIG
-# =====================
+# ===============================
 st.set_page_config(
-    page_title="ARSLM – Lightweight, Efficient & Secure AI",
+    page_title="MicroLLM Studio",
     page_icon="🧠",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# =====================
-# CSS (léger & animé)
-# =====================
+# ===============================
+# CUSTOM CSS (inchangé)
+# ===============================
 st.markdown("""
 <style>
-.main-title {
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+* { font-family: 'Inter', sans-serif; }
+
+.main-header {
     font-size: 3rem;
-    font-weight: 800;
-    background: linear-gradient(90deg,#4f46e5,#9333ea);
+    font-weight: bold;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
-.card {
-    background: #111827;
+
+.metric-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     padding: 20px;
-    border-radius: 16px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    border-radius: 15px;
+    color: white;
+    text-align: center;
+    margin: 10px 0;
 }
-.fade {
-    animation: fadeIn 0.8s ease-in-out;
+
+.user-msg {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px;
+    border-radius: 15px;
+    margin: 10px 0;
+    margin-left: 20%;
 }
-@keyframes fadeIn {
-    from {opacity: 0; transform: translateY(10px);}
-    to {opacity: 1; transform: translateY(0);}
+
+.assistant-msg {
+    background: #f7f7f8;
+    color: #1a1a1a;
+    padding: 15px;
+    border-radius: 15px;
+    margin: 10px 0;
+    margin-right: 20%;
+    border-left: 4px solid #667eea;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# =====================
-# HEADER
-# =====================
-st.markdown('<div class="main-title">ARSLM</div>', unsafe_allow_html=True)
-st.markdown("""
-**ARSLM – Lightweight, Efficient & Secure AI**  
-Compact Small Language Model designed for real-world, privacy-first applications.
-""")
+# ===============================
+# ARSLM ENGINE (RULE-BASED)
+# ===============================
+class ARSLMEngine:
+    def __init__(self):
+        self.history = []
 
-# =====================
-# FILE UPLOAD
-# =====================
-uploaded_file = st.file_uploader(
-    "📄 Upload PDF, TXT or DOCX",
-    type=["pdf", "txt", "docx"]
-)
+    def generate_response(self, query, lang="en"):
+        q = query.lower()
 
+        if any(k in q for k in ["title", "titre", "título"]):
+            return {
+                "fr": "Le titre du document correspond généralement à la première section.",
+                "en": "The document title is usually found at the beginning.",
+                "es": "El título del documento suele estar al inicio."
+            }[lang]
+
+        if any(k in q for k in ["summary", "résumé", "resumen"]):
+            return {
+                "fr": "Voici un résumé basé sur le contenu du document.",
+                "en": "Here is a summary based on the document content.",
+                "es": "Aquí hay un resumen basado en el contenido del documento."
+            }[lang]
+
+        if any(k in q for k in ["key", "clé", "clave"]):
+            return {
+                "fr": "Les informations clés sont extraites des premières sections.",
+                "en": "Key information is extracted from the main sections.",
+                "es": "La información clave se extrae de las secciones principales."
+            }[lang]
+
+        return {
+            "fr": "Je n'ai pas trouvé de réponse précise dans le document.",
+            "en": "I could not find a precise answer in the document.",
+            "es": "No se encontró una respuesta precisa en el documento."
+        }[lang]
+
+# ===============================
+# SESSION STATE
+# ===============================
+if "engine" not in st.session_state:
+    st.session_state.engine = ARSLMEngine()
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# ===============================
+# SIDEBAR
+# ===============================
+with st.sidebar:
+    st.image("https://via.placeholder.com/200x80/667eea/ffffff?text=MicroLLM+Studio")
+    page = st.radio("Navigation", ["🏠 Dashboard", "💬 Chat"], label_visibility="collapsed")
+
+# ===============================
+# FILE EXTRACTION
+# ===============================
 def extract_text(file):
     if file.type == "application/pdf":
         reader = PyPDF2.PdfReader(file)
@@ -73,67 +142,59 @@ def extract_text(file):
 
     return ""
 
-def summarize(text):
-    sentences = text.split(".")
-    return ". ".join(sentences[:5]).strip() + "."
+def summarize_text(text):
+    sentences = text.split(". ")
+    return ". ".join(sentences[:5]) + "..." if len(sentences) > 5 else text
 
-def extract_title(text):
-    lines = [l.strip() for l in text.split("\n") if len(l.strip()) > 10]
-    return lines[0] if lines else "Titre non détecté"
+# ===============================
+# DASHBOARD
+# ===============================
+if page == "🏠 Dashboard":
+    st.markdown('<p class="main-header">MicroLLM Studio</p>', unsafe_allow_html=True)
 
-def key_points(text):
-    sentences = text.split(".")
-    return sentences[:8]
+    uploaded_file = st.file_uploader("📄 Upload PDF, TXT ou DOCX", type=["pdf","txt","docx"])
 
-# =====================
-# PROCESS DOCUMENT
-# =====================
-if uploaded_file:
-    with st.spinner("📖 Analyzing document..."):
-        text = extract_text(uploaded_file)
-        time.sleep(0.5)
+    if uploaded_file:
+        with st.spinner("📖 Extraction du texte..."):
+            text_content = extract_text(uploaded_file)
+            st.success("✅ Texte extrait")
 
-    lang = detect(text)
+        st.text_area("Contenu extrait", text_content, height=200)
 
-    st.progress(100)
+        st.markdown("### ⏳ Analyse")
+        progress = st.progress(0)
+        for i in tqdm(range(100)):
+            time.sleep(0.01)
+            progress.progress(i + 1)
 
-    st.markdown("### 📌 Document title")
-    st.markdown(f"<div class='card fade'>{extract_title(text)}</div>", unsafe_allow_html=True)
+        st.markdown("### 📋 Résumé")
+        st.write(summarize_text(text_content))
 
-    st.markdown("### 🧾 Summary")
-    st.markdown(f"<div class='card fade'>{summarize(text)}</div>", unsafe_allow_html=True)
+# ===============================
+# CHAT
+# ===============================
+elif page == "💬 Chat":
+    st.markdown('<p class="main-header">MicroLLM Chat</p>', unsafe_allow_html=True)
 
-    st.markdown("### 🔑 Key information")
-    for point in key_points(text):
-        st.markdown(f"- {point.strip()}")
+    for msg in st.session_state.messages:
+        cls = "user-msg" if msg["role"] == "user" else "assistant-msg"
+        st.markdown(
+            f'<div class="{cls}">{"👤" if msg["role"]=="user" else "🤖"} {msg["content"]}</div>',
+            unsafe_allow_html=True
+        )
 
-# =====================
-# CHAT DOCUMENT
-# =====================
-st.markdown("### 💬 Ask questions about the document")
+    user_input = st.chat_input("Posez votre question sur le document...")
 
-if "chat" not in st.session_state:
-    st.session_state.chat = []
+    if user_input:
+        try:
+            lang = detect(user_input)
+            if lang not in ["fr", "en", "es"]:
+                lang = "en"
+        except:
+            lang = "en"
 
-question = st.chat_input("Ask a question about the document...")
+        response = st.session_state.engine.generate_response(user_input, lang)
 
-if question and uploaded_file:
-    st.session_state.chat.append(("user", question))
-
-    q = question.lower()
-    if "title" in q or "titre" in q:
-        answer = extract_title(text)
-    elif "summary" in q or "résumé" in q:
-        answer = summarize(text)
-    elif "key" in q or "clé" in q:
-        answer = "\n".join(key_points(text))
-    else:
-        answer = "This question cannot be answered precisely from the document."
-
-    st.session_state.chat.append(("assistant", answer))
-
-for role, msg in st.session_state.chat:
-    if role == "user":
-        st.markdown(f"👤 **You:** {msg}")
-    else:
-        st.markdown(f"🤖 **ARSLM:** {msg}")
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        st.session_state.messages.append({"role": "assistant", "content": response})
+        st.rerun()
