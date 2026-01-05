@@ -1,13 +1,20 @@
-streamlit==1.26.0
-streamlit-chat==0.1.1
-rich==13.3.5
-pygments==2.19.2
-markdown-it-py==3.0.0
-mdurl==0.1.2
-plotly==5.16.0
-pandas==2.1.0
-torch==2.1.0
-transformers==4.41.0
-PyPDF2==3.0.0
-python-docx==0.8.12
-requests==2.31.0
+# Streamlit UI
+streamlit>=1.24.0
+
+# Transformers (pour ARSLM / GPT2)
+transformers>=4.40.0
+torch>=2.1.0
+
+# Data processing
+pandas>=2.1.0
+numpy>=1.26.0
+
+# Plotly pour les graphiques interactifs
+plotly>=5.16.0
+
+# Documents
+PyPDF2>=3.1.0
+python-docx>=0.8.12
+
+# Utils
+requests>=2.31.0
