@@ -1,10 +1,22 @@
-# Streamlit
+# ===========================================
+# MicroLLM Studio Enterprise - Requirements
+# Built on ARSLM - Proprietary AI Platform
+# ===========================================
+
+# Core Framework
 streamlit>=1.40.0
 
-# Data processing
+# Data Processing & Analysis
 pandas>=2.0.0
 
-# Visualization
+# Data Visualization
 plotly>=5.18.0
 
-# Lightweight - No PyTorch required!
+# ===========================================
+# Notes:
+# - Lightweight dependencies only
+# - Compatible with Python 3.8+ (including 3.13)
+# - No PyTorch required (pure Python)
+# - Optimized for Streamlit Cloud deployment
+# - Total install size: ~50MB
+# ===========================================
