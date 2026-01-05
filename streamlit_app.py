@@ -2,7 +2,8 @@
 MicroLLM Studio - Streamlit Dashboard
 No-Code interface with Chat + Document Interaction (ARSLM-ready)
 """
-
+from transformers import AutoTokenizer, AutoModelForCausalLM
+import torch
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -14,7 +15,14 @@ import requests
 # PAGE CONFIG
 # ===============================
 st.set_page_config(
-    page_title="MicroLLM Studio",
+@st.cache_resource
+def load_local_model():
+    tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
+    model = AutoModelForCausalLM.from_pretrained("distilgpt2")
+    return tokenizer, model
+
+tokenizer, model = load_local_model()   
+ page_title="MicroLLM Studio",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -51,7 +59,8 @@ if "models" not in st.session_state:
 
 if "training_history" not in st.session_state:
     st.session_state.training_history = []
-
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -67,11 +76,7 @@ with st.sidebar:
     page = st.radio(
         "Navigation",
         [
-            "🏠 Dashboard",
-            "🎓 Training",
-            "🔍 Models",
-            "💬 Chat",
-            "⚙️ Settings",
+           ["🏠 Dashboard", "🎓 Training", "🔍 Models", "💬 Chat", "📊 Analytics", "⚙️ Settings"] ,
         ],
         label_visibility="collapsed"
     )
@@ -110,7 +115,52 @@ if page == "🏠 Dashboard":
 # TRAINING (UI ONLY)
 # ===============================
 elif page == "🎓 Training":
-    st.markdown('<p class="main-header">Training (No-Code)</p>', unsafe_allow_html=True)
+  elif page == "💬 Chat":
+    st.markdown('<p class="main-header">MicroLLM Chat</p>', unsafe_allow_html=True)
+    st.caption("Local • On-device • No-Code • ARSLM-compatible")
+
+    with st.expander("📄 Upload documents (No-Code)"):
+        uploaded_files = st.file_uploader(
+            "Upload your files",
+            type=["txt", "pdf", "csv"],
+            accept_multiple_files=True
+        )
+        if uploaded_files:
+            for f in uploaded_files:
+                st.success(f"{f.name} loaded")
+
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    user_input = st.chat_input("Ask MicroLLM...")
+
+    if user_input:
+        st.session_state.messages.append({
+            "role": "user",
+            "content": user_input
+        })
+
+        with st.chat_message("assistant"):
+            with st.spinner("MicroLLM is thinking..."):
+                inputs = tokenizer.encode(user_input, return_tensors="pt")
+                outputs = model.generate(
+                    inputs,
+                    max_new_tokens=120,
+                    temperature=0.7,
+                    do_sample=True
+                )
+                response = tokenizer.decode(
+                    outputs[0],
+                    skip_special_tokens=True
+                )
+                st.markdown(response)
+
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": response
+        })  
+st.markdown('<p class="main-header">Training (No-Code)</p>', unsafe_allow_html=True)
 
     model_name = st.text_input("Model Name")
     model_type = st.selectbox(
