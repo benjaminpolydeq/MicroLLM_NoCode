@@ -1,23 +1,7 @@
-# Streamlit
-streamlit>=1.40.0
-
-# Transformers (version compatible)
-transformers>=4.46.0
-
-# PyTorch - Version compatible Python 3.13
-torch>=2.5.0
-torchvision>=0.20.0
-
-# Data processing
-pandas>=2.0.0
-numpy>=1.24.0
-
-# Visualization
-plotly>=5.18.0
-
-# Document processing
-PyPDF2>=3.0.0
-python-docx>=1.1.0
-
-# Additional dependencies
-requests>=2.31.0
+streamlit==1.27.0
+pandas==2.1.0
+plotly==5.16.1
+PyPDF2==3.1.0
+python-docx==0.8.12
+langdetect==1.0.9
+googletrans==4.0.0-rc1
