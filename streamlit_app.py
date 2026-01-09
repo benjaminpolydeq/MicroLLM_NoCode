@@ -7,31 +7,31 @@ import streamlit as st
 from datetime import datetime
 
 #===============================
-PAGE CONFIG
+#PAGE CONFIG
 #===============================
 
 st.set_page_config( page_title="MicroLLM Studio - Enterprise AI", page_icon="🤖", layout="wide", initial_sidebar_state="expanded" )
 
 #===============================
-OPTIONAL: OpenAI SDK (compatible providers)
+#OPTIONAL: OpenAI SDK (compatible providers)
 #===============================
 
 try: from openai import OpenAI except Exception: OpenAI = None
 
 #===============================
-SYSTEM INFO
+#SYSTEM INFO
 #===============================
 
 SYSTEM_INFO = { "platform": "MicroLLM Studio", "version": "1.1.0-Enterprise-API", "base_model": "ARSLM / External LLM", }
 
 #===============================
-DOMAINS
+#DOMAINS
 #===============================
 
 DOMAINS = { "💼 RH & Recrutement": "Tu es un expert RH et recrutement. Réponds de manière professionnelle et confidentielle.", "⚖️ Juridique & Compliance": "Tu es un assistant juridique. Réponses informatives uniquement, jamais de conseil légal.", "🏥 Médical & Santé": "Tu es un assistant médical pour professionnels de santé. Ne remplace jamais un avis médical.", "🔬 Recherche & Sciences": "Tu es un assistant de recherche scientifique rigoureux et factuel.", "💻 Développement & Code": "Tu es un expert en développement logiciel et architecture.", "📊 Analyse & Business Intelligence": "Tu es un expert data et business intelligence, orienté décisions.", }
 
 #===============================
-SIDEBAR - API CONFIG
+#SIDEBAR - API CONFIG
 #===============================
 
 st.sidebar.title("🔐 Configuration API")
@@ -43,19 +43,19 @@ model_name = st.sidebar.text_input( "Modèle", value="gpt-4o-mini" )
 st.sidebar.markdown("---") selected_domain = st.sidebar.selectbox("Domaine", list(DOMAINS.keys()))
 
 #===============================
-HEADER
+#HEADER
 #===============================
 
 st.markdown( f""" <div style="background:linear-gradient(135deg,#1e3c72,#667eea);padding:2rem;border-radius:12px;color:white;"> <h1>🤖 MicroLLM Studio</h1> <p>Enterprise AI Assistant – API Secure Mode</p> <small>Version {SYSTEM_INFO['version']}</small> </div> """, unsafe_allow_html=True )
 
 #===============================
-SESSION STATE
+#SESSION STATE
 #===============================
 
 if "messages" not in st.session_state: st.session_state.messages = []
 
 #===============================
-AI ENGINE (API MODE)
+#AI ENGINE (API MODE)
 #===============================
 
 def call_ai_api(user_query: str, domain: str) -> str: if not api_key: return "❌ Clé API manquante. Veuillez renseigner votre clé dans la barre latérale."
@@ -89,7 +89,7 @@ except Exception as e:
     return f"❌ Erreur API : {e}"
 
 #===============================
-CHAT UI
+#CHAT UI
 #===============================
 
 st.subheader(f"🧠 Domaine actif : {selected_domain}")
@@ -97,7 +97,7 @@ st.subheader(f"🧠 Domaine actif : {selected_domain}")
 for msg in st.session_state.messages: if msg["role"] == "user": st.markdown( f"<div style='background:#667eea;color:white;padding:1rem;border-radius:12px;margin:1rem 0 1rem 20%;'>{msg['content']}</div>", unsafe_allow_html=True ) else: st.markdown( f"<div style='background:#f4f6f8;padding:1rem;border-radius:12px;margin:1rem 20% 1rem 0;border-left:4px solid #667eea;'>{msg['content']}</div>", unsafe_allow_html=True )
 
 #===============================
-INPUT
+#INPUT
 #===============================
 
 user_input = st.text_area("Votre message", placeholder="Posez votre question…")
@@ -114,7 +114,7 @@ except Exception:
     pass
 
 #===============================
-FOOTER
+#FOOTER
 #===============================
 
 st.markdown("---") st.caption(f"© {datetime.now().year} MicroLLM Studio – Secure API Mode")
