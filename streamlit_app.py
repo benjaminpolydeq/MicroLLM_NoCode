@@ -1,7 +1,6 @@
 """
 MicroLLM Studio - Enterprise On-Premise AI Assistant
-API-enabled version (OpenAI-compatible)
-Clé API sécurisée via st.secrets
+Version stable et sécurisée
 """
 
 import os
@@ -14,7 +13,7 @@ import docx
 # PAGE CONFIG
 # ===============================
 st.set_page_config(
-    page_title="MicroLLM Studio - Enterprise AI",
+    page_title="MicroLLM Studio",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -33,7 +32,7 @@ except Exception:
 # ===============================
 SYSTEM_INFO = {
     "platform": "MicroLLM Studio",
-    "version": "1.5.0-Enterprise-API",
+    "version": "1.6.0-Stable",
     "base_model": "ARSLM / External LLM",
 }
 
@@ -54,23 +53,15 @@ DOMAINS = {
 # ===============================
 st.sidebar.title("🔐 Configuration API")
 
-# 🔒 Récupération sécurisée de la clé via st.secrets
+# Clé sécurisée
 api_key = st.secrets.get("OPENAI_API_KEY", None)
-
 if not api_key:
     st.sidebar.error("❌ Clé API OpenAI manquante ! Ajoutez-la dans st.secrets.toml")
 
-model_name = st.sidebar.text_input(
-    "Modèle",
-    value="gpt-4o-mini"
-)
+model_name = st.sidebar.text_input("Modèle", value="gpt-4o-mini")
 
 st.sidebar.markdown("---")
-
-selected_domain = st.sidebar.selectbox(
-    "Domaine",
-    list(DOMAINS.keys())
-)
+selected_domain = st.sidebar.selectbox("Domaine", list(DOMAINS.keys()))
 
 # ===============================
 # HEADER
@@ -94,14 +85,14 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # ===============================
-# AI ENGINE (API MODE)
+# AI ENGINE
 # ===============================
 def call_ai_api(user_query: str, domain: str) -> str:
     if not api_key:
-        return "❌ Clé API manquante ou invalide. Veuillez ajouter votre clé dans st.secrets.toml"
+        return "❌ Clé API manquante ou invalide."
 
     if OpenAI is None:
-        return "❌ SDK OpenAI non installé. Ajoutez `openai` à requirements.txt."
+        return "❌ SDK OpenAI non installé."
 
     client = OpenAI(api_key=api_key)
     system_prompt = DOMAINS.get(domain, "Tu es un assistant professionnel.")
@@ -121,15 +112,13 @@ def call_ai_api(user_query: str, domain: str) -> str:
         return f"❌ Erreur API : {e}"
 
 # ===============================
-# PDF / DOCX / TXT UPLOAD
+# PDF / DOCX / TXT EXTRACTION
 # ===============================
 def extract_text_from_file(uploaded_file):
     if uploaded_file is None:
         return ""
-
     filename = uploaded_file.name.lower()
     text = ""
-
     if filename.endswith(".pdf"):
         reader = PyPDF2.PdfReader(uploaded_file)
         for page in reader.pages:
@@ -141,13 +130,13 @@ def extract_text_from_file(uploaded_file):
         for para in doc.paragraphs:
             text += para.text + "\n"
     elif filename.endswith(".txt"):
-        text = str(uploaded_file.read(), encoding='utf-8')
+        text = str(uploaded_file.read(), encoding="utf-8")
     else:
-        st.warning("Format non supporté. Veuillez uploader un PDF, DOCX ou TXT.")
+        st.warning("Format non supporté. PDF, DOCX ou TXT uniquement.")
     return text.strip()
 
 # ===============================
-# CONTAINERS POUR CHAT ET DOC
+# CONTAINERS
 # ===============================
 doc_container = st.container()
 chat_container = st.container()
@@ -155,15 +144,15 @@ chat_container = st.container()
 # ===== Document Upload / Analyse =====
 with doc_container:
     st.subheader("📄 Analyse de document")
-    uploaded_file = st.file_uploader("Upload PDF, DOCX ou TXT", type=["pdf", "docx", "txt"])
+    uploaded_file = st.file_uploader("Upload PDF, DOCX ou TXT", type=["pdf", "docx", "txt"], key="file_upload")
     if uploaded_file:
         doc_text = extract_text_from_file(uploaded_file)
         if doc_text:
-            st.text_area("Contenu extrait", value=doc_text, height=200)
+            st.text_area("Contenu extrait", value=doc_text, height=200, key="doc_text_area")
             if st.button("Analyser le document", key="analyze_doc"):
-                st.session_state.messages.append({"role": "user", "content": doc_text})
+                st.session_state.messages.append({"role":"user","content":doc_text})
                 answer = call_ai_api(doc_text, selected_domain)
-                st.session_state.messages.append({"role": "assistant", "content": answer})
+                st.session_state.messages.append({"role":"assistant","content":answer})
 
 # ===== Chat UI =====
 with chat_container:
@@ -180,11 +169,11 @@ with chat_container:
                 unsafe_allow_html=True
             )
 
-    user_input = st.text_area("Votre message", placeholder="Posez votre question…")
+    user_input = st.text_area("Votre message", placeholder="Posez votre question…", key="chat_input")
     if st.button("Envoyer", key="send_chat") and user_input.strip():
-        st.session_state.messages.append({"role": "user", "content": user_input})
+        st.session_state.messages.append({"role":"user","content":user_input})
         answer = call_ai_api(user_input, selected_domain)
-        st.session_state.messages.append({"role": "assistant", "content": answer})
+        st.session_state.messages.append({"role":"assistant","content":answer})
 
 # ===============================
 # FOOTER
