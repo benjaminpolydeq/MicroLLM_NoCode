@@ -125,11 +125,11 @@ if st.button("Envoyer") and user_input.strip(): st.session_state.messages.append
 answer = call_ai_api(user_input, selected_domain)
 st.session_state.messages.append({"role": "assistant", "content": answer})
 
-# Safe rerun using a try-except to avoid Cloud redacted error
+# Safe rerun using try-except to prevent redacted error in Cloud
 try:
     st.experimental_rerun()
 except Exception:
-    pass  # Ignore rerun errors in certain environments
+    pass
 
 ===============================
 
