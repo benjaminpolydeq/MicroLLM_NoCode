@@ -1,55 +1,50 @@
 """
-MicroLLM Studio - Enterprise On-Premise AI Assistant
-Built on ARSLM - Secure, Private, Specialized AI for Sensitive Domains
+MicroLLM Studio - Enterprise AI Assistant
+Powered by OpenAI (pluggable with ARSLM later)
 
-Copyright © 2025 Benjamin Amaad Kama.
-All Rights Reserved.
-Proprietary Software - License Required for Commercial Use
+© 2025 Benjamin Amaad Kama
 """
 
 import streamlit as st
+from pathlib import Path
 from datetime import datetime
+
+from openai import OpenAI
+from pypdf import PdfReader
+from docx import Document
 
 # ==================================================
 # PAGE CONFIG
 # ==================================================
 st.set_page_config(
-    page_title="MicroLLM Studio - Enterprise AI",
+    page_title="MicroLLM Studio",
     page_icon="🤖",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
 # ==================================================
-# SYSTEM INFO
+# OPENAI CLIENT
 # ==================================================
-SYSTEM_INFO = {
-    "platform": "MicroLLM Studio",
-    "version": "1.0.0-Enterprise",
-    "base_model": "ARSLM",
-}
+client = OpenAI(api_key=st.secrets.get("OPENAI_API_KEY"))
 
 # ==================================================
 # DOMAINS
 # ==================================================
 DOMAINS = {
-    "💼 RH & Recrutement": {
-        "system_prompt": "Expert RH et recrutement."
-    },
-    "⚖️ Juridique & Compliance": {
-        "system_prompt": "Assistant juridique expert (informatif uniquement)."
-    },
-    "🏥 Médical & Santé": {
-        "system_prompt": "Assistant médical pour professionnels de santé."
-    },
-    "🔬 Recherche & Sciences": {
-        "system_prompt": "Assistant de recherche scientifique."
-    },
     "💻 Développement & Code": {
-        "system_prompt": "Expert développement logiciel et architecture."
+        "system_prompt": "Tu es un expert senior en développement logiciel et architecture."
     },
-    "📊 Analyse & Business Intelligence": {
-        "system_prompt": "Expert data et business intelligence."
+    "⚖️ Juridique": {
+        "system_prompt": "Tu es un assistant juridique (informatif, pas de conseil légal)."
+    },
+    "💼 RH & Recrutement": {
+        "system_prompt": "Tu es un expert RH et recrutement."
+    },
+    "🏥 Médical": {
+        "system_prompt": "Tu es un assistant médical réservé aux professionnels de santé."
+    },
+    "📊 Business & Analyse": {
+        "system_prompt": "Tu es un expert en business intelligence et analyse stratégique."
     }
 }
 
@@ -60,17 +55,20 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 if "domain" not in st.session_state:
-    st.session_state.domain = "💻 Développement & Code"
+    st.session_state.domain = list(DOMAINS.keys())[0]
+
+if "knowledge_base" not in st.session_state:
+    st.session_state.knowledge_base = []
 
 # ==================================================
 # HEADER
 # ==================================================
 st.markdown(
-    f"""
+    """
     <div style="background:linear-gradient(135deg,#1e3c72,#667eea);
                 padding:2rem;border-radius:15px;color:white;">
-        <h1>🤖 {SYSTEM_INFO['platform']}</h1>
-        <p>Built on {SYSTEM_INFO['base_model']} — Enterprise On-Premise AI</p>
+        <h1>🤖 MicroLLM Studio</h1>
+        <p>Secure • On-Premise • Document-Aware AI</p>
     </div>
     """,
     unsafe_allow_html=True
@@ -80,83 +78,88 @@ st.markdown(
 # SIDEBAR
 # ==================================================
 with st.sidebar:
-    st.markdown("## 🎯 Domaine de spécialisation")
+    st.markdown("## 🎯 Domaine")
     st.session_state.domain = st.selectbox(
-        "Choisir un domaine",
+        "Spécialisation",
         list(DOMAINS.keys())
     )
 
     st.markdown("---")
-    st.markdown("🔐 **100% On-Premise — Confidentialité Totale**")
+    st.markdown("## 📚 Ingestion Documents")
+
+    uploaded_files = st.file_uploader(
+        "PDF / Word / Code",
+        type=["pdf", "docx", "txt", "py", "js", "ts", "java", "cpp"],
+        accept_multiple_files=True
+    )
+
+    if uploaded_files:
+        for file in uploaded_files:
+            suffix = Path(file.name).suffix.lower()
+            text = ""
+
+            if suffix == ".pdf":
+                reader = PdfReader(file)
+                text = "\n".join(p.extract_text() or "" for p in reader.pages)
+
+            elif suffix == ".docx":
+                doc = Document(file)
+                text = "\n".join(p.text for p in doc.paragraphs)
+
+            else:
+                text = file.read().decode("utf-8", errors="ignore")
+
+            if text.strip():
+                st.session_state.knowledge_base.append({
+                    "name": file.name,
+                    "content": text
+                })
+                st.success(f"✔ {file.name} ingéré")
+
+    st.markdown("---")
+    st.caption("🔐 Données traitées localement (session)")
 
 # ==================================================
-# AI RESPONSE ENGINE (SAFE)
+# CONTEXT BUILDER (RAG SIMPLE)
 # ==================================================
-def generate_response(user_query: str, domain: str) -> str:
-    if "💼 RH" in domain:
-        return (
-            "**Analyse RH Professionnelle**\n\n"
-            f"Demande : {user_query}\n\n"
-            "- Analyse de CV et profils\n"
-            "- Rédaction de documents RH\n"
-            "- Recommandations pratiques\n\n"
-            "📌 Les données restent strictement confidentielles."
-        )
+def build_context():
+    docs = st.session_state.knowledge_base[-5:]
+    if not docs:
+        return ""
 
-    if "⚖️ Juridique" in domain:
-        return (
-            "**Analyse Juridique (Informationnelle)**\n\n"
-            f"Sujet : {user_query}\n\n"
-            "- Analyse de contrats\n"
-            "- Identification de risques\n"
-            "- Conformité réglementaire\n\n"
-            "⚠️ Ceci ne constitue pas un conseil juridique."
-        )
+    return "\n\n".join(
+        f"### Document: {d['name']}\n{d['content'][:3000]}"
+        for d in docs
+    )
 
-    if "🏥 Médical" in domain:
-        return (
-            "**Analyse Médicale Professionnelle**\n\n"
-            f"Demande : {user_query}\n\n"
-            "- Support au diagnostic différentiel\n"
-            "- Analyse documentaire médicale\n"
-            "- Veille scientifique\n\n"
-            "⚠️ Réservé aux professionnels de santé."
-        )
+# ==================================================
+# OPENAI RESPONSE
+# ==================================================
+def generate_response(user_query: str) -> str:
+    domain_prompt = DOMAINS[st.session_state.domain]["system_prompt"]
+    context = build_context()
 
-    if "🔬 Recherche" in domain:
-        return (
-            "**Assistance à la Recherche Scientifique**\n\n"
-            f"Projet : {user_query}\n\n"
-            "- Revue de littérature\n"
-            "- Analyse méthodologique\n"
-            "- Rédaction scientifique\n"
-        )
+    messages = [
+        {"role": "system", "content": domain_prompt},
+        {
+            "role": "system",
+            "content": (
+                "Contexte interne issu de documents privés. "
+                "Utilise-le uniquement s'il est pertinent.\n\n"
+                f"{context}"
+            )
+        },
+        {"role": "user", "content": user_query}
+    ]
 
-    if "💻 Développement" in domain:
-        return (
-            "**Assistance Technique Développement**\n\n"
-            f"Requête : {user_query}\n\n"
-            "💻 Revue de code\n"
-            "- Qualité et lisibilité\n"
-            "- Détection de bugs\n"
-            "- Sécurité et performance\n\n"
-            "🔧 Génération & Refactoring\n"
-            "- Code production-ready\n"
-            "- Tests unitaires\n"
-            "- Design patterns\n\n"
-            "🔐 Tout reste en environnement on-premise."
-        )
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=messages,
+        temperature=0.3,
+        max_tokens=800
+    )
 
-    if "📊 Analyse" in domain:
-        return (
-            "**Analyse & Business Intelligence**\n\n"
-            f"Question : {user_query}\n\n"
-            "- Analyse de données\n"
-            "- KPIs & reporting\n"
-            "- Recommandations stratégiques"
-        )
-
-    return "Assistant prêt à vous aider."
+    return response.choices[0].message.content
 
 # ==================================================
 # CHAT UI
@@ -167,7 +170,7 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-user_input = st.chat_input("Posez votre question…")
+user_input = st.chat_input("Pose ta question…")
 
 if user_input:
     st.session_state.messages.append({
@@ -175,23 +178,24 @@ if user_input:
         "content": user_input
     })
 
-    response = generate_response(user_input, st.session_state.domain)
+    with st.chat_message("assistant"):
+        with st.spinner("Analyse en cours…"):
+            answer = generate_response(user_input)
+            st.markdown(answer)
 
     st.session_state.messages.append({
         "role": "assistant",
-        "content": response
+        "content": answer
     })
-
-    st.rerun()
 
 # ==================================================
 # FOOTER
 # ==================================================
 st.markdown(
-    f"""
+    """
     <hr>
     <small>
-    © 2025 Benjamin Amaad Kama — MicroLLM Studio — {SYSTEM_INFO['version']}
+    © 2025 MicroLLM Studio — OpenAI backend (ARSLM-ready)
     </small>
     """,
     unsafe_allow_html=True
