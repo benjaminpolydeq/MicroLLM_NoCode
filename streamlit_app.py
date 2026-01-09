@@ -4,7 +4,6 @@ Powered by OpenAI (pluggable with ARSLM later)
 
 © 2025 Benjamin Amaad Kama
 """
-
 import streamlit as st
 from pathlib import Path
 from datetime import datetime
@@ -12,6 +11,18 @@ from datetime import datetime
 from openai import OpenAI
 from pypdf import PdfReader
 from docx import Document
+import streamlit as st
+from openai import OpenAI
+
+# Récupérer la clé depuis Streamlit Secrets
+api_key = st.secrets.get("OPENAI_API_KEY")
+
+if not api_key:
+    st.error("🔑 Clé OpenAI manquante ! Vérifie .streamlit/secrets.toml")
+else:
+    client = OpenAI(api_key=api_key)
+    st.success("✅ Clé OpenAI détectée et client initialisé")
+
 
 # ==================================================
 # PAGE CONFIG
