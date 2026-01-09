@@ -1,8 +1,13 @@
-""" MicroLLM Studio - Enterprise On-Premise AI Assistant Built on ARSLM - Secure, Private, Specialized AI for Sensitive Domains
+"""
+MicroLLM Studio - Enterprise On-Premise AI Assistant
+Built on ARSLM - Secure, Private, Specialized AI for Sensitive Domains
 
-Copyright © 2025 Benjamin Amaad Kama. All Rights Reserved. Proprietary Software - License Required for Commercial Use """
+Copyright © 2025 Benjamin Amaad Kama. All Rights Reserved.
+Proprietary Software - License Required for Commercial Use
+"""
 
-import streamlit as st from datetime import datetime
+import streamlit as st
+from datetime import datetime
 
 ===============================
 
