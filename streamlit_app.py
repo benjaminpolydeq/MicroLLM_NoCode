@@ -53,11 +53,15 @@ DOMAINS = {
 # ===============================
 st.sidebar.title("🔐 Configuration API")
 
-api_key = st.sidebar.text_input(
-    "Clé API (OpenAI ou compatible)",
-    type="password",
-    value=os.getenv("OPENAI_API_KEY", "")
+# Priorité : Streamlit Secrets > Champ manuel > Variable d'environnement
+api_key = (
+    st.secrets.get("OPENAI_API_KEY", None) or
+    st.sidebar.text_input("Clé API (OpenAI ou compatible)", type="password").strip() or
+    os.getenv("OPENAI_API_KEY", "").strip()
 )
+
+if not api_key:
+    st.sidebar.warning("❌ Veuillez renseigner votre clé API OpenAI valide !")
 
 model_name = st.sidebar.text_input(
     "Modèle",
@@ -97,7 +101,7 @@ if "messages" not in st.session_state:
 # ===============================
 def call_ai_api(user_query: str, domain: str) -> str:
     if not api_key:
-        return "❌ Clé API manquante. Veuillez renseigner votre clé dans la barre latérale."
+        return "❌ Clé API manquante ou invalide. Veuillez renseigner votre clé dans la barre latérale."
 
     if OpenAI is None:
         return "❌ SDK OpenAI non installé. Ajoutez `openai` à requirements.txt."
@@ -105,14 +109,8 @@ def call_ai_api(user_query: str, domain: str) -> str:
     client = OpenAI(api_key=api_key)
     system_prompt = DOMAINS.get(domain, "Tu es un assistant professionnel.")
 
-    messages = [
-        {"role": "system", "content": system_prompt},
-    ]
-
-    # Historique limité (sécurité / coût)
-    for msg in st.session_state.messages[-6:]:
-        messages.append(msg)
-
+    messages = [{"role": "system", "content": system_prompt}]
+    messages += st.session_state.messages[-6:]  # Historique limité
     messages.append({"role": "user", "content": user_query})
 
     try:
