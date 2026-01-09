@@ -10,12 +10,17 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime
+import json
 import os
-import io
 from pathlib import Path
-from openai import OpenAI
+import io
+
+# PDF / DOC / CODE ingestion
 from PyPDF2 import PdfReader
 import docx
+
+# OpenAI client
+from openai import OpenAI
 
 # ===============================
 # PAGE CONFIG
@@ -28,195 +33,142 @@ st.set_page_config(
 )
 
 # ===============================
-# OPENAI API INIT
+# OPENAI KEY INTEGRATION
 # ===============================
 api_key = st.secrets.get("OPENAI_API_KEY")
 
 if not api_key:
-    st.error("🔑 Clé OpenAI manquante ! Vérifie .streamlit/secrets.toml")
+    st.error("🔑 OpenAI API key missing! Check .streamlit/secrets.toml")
     st.stop()
 else:
     client = OpenAI(api_key=api_key)
-    st.success("✅ Clé OpenAI détectée et client initialisé")
+    st.success("✅ OpenAI key detected and client initialized")
 
 # ===============================
-# SYSTEM INFO
+# DOMAINS / SPECIALIZATIONS
 # ===============================
-SYSTEM_INFO = {
-    "platform": "MicroLLM Studio",
-    "version": "1.0.0-Enterprise",
-    "base_model": "ARSLM",
-    "features": [
-        "🔒 100% On-Premise - Données sécurisées",
-        "🧠 Spécialisation domaine",
-        "📚 Ingestion PDF/DOC/TXT/Code",
-        "🔍 Recherche interne sécurisée",
-        "💻 Analyse et génération de code",
-        "📊 Résumés et rapports automatisés",
-        "🎯 Interface No-Code",
-        "🔐 Sécurité renforcée"
-    ]
+DOMAINS = {
+    "💼 HR & Recruitment / RH & Recrutement": {
+        "description": "Expert assistant for HR tasks / Assistant expert pour les RH",
+        "system_prompt": """You are an HR expert. You help with CV analysis, job descriptions, interview guidance, training plans, conflict resolution.
+Vous êtes un expert RH. Vous aidez à l'analyse de CV, rédaction de fiches de poste, entretien, formation, gestion de conflits."""
+    },
+    "⚖️ Legal & Compliance / Juridique & Compliance": {
+        "description": "Legal expert assistant / Assistant expert juridique",
+        "system_prompt": """You are a legal assistant. You help with contract analysis, due diligence, compliance and legal document drafting.
+Vous êtes un assistant juridique. Vous aidez à l'analyse de contrats, due diligence, conformité et rédaction juridique."""
+    },
+    "🏥 Medical & Health / Médical & Santé": {
+        "description": "Medical professional assistant / Assistant pour professionnels de santé",
+        "system_prompt": """You are a medical assistant for professionals. You help with patient records, differential diagnosis, research, and reports.
+Vous êtes un assistant médical pour professionnels. Vous aidez avec les dossiers patients, diagnostic différentiel, recherches et comptes-rendus."""
+    },
+    "🔬 Research & Science / Recherche & Sciences": {
+        "description": "Research assistant for scientific work / Assistant pour la recherche scientifique",
+        "system_prompt": """You are a research assistant. You help with literature review, data analysis, article drafting, hypothesis generation.
+Vous êtes un assistant de recherche. Vous aidez aux revues de littérature, analyse de données, rédaction et génération d'hypothèses."""
+    },
+    "💻 Development & Code / Développement & Code": {
+        "description": "Technical assistant for developers / Assistant technique pour développeurs",
+        "system_prompt": """You are a software development expert. You help with code review, debugging, optimization, documentation.
+Vous êtes un expert en développement logiciel. Vous aidez à la revue de code, débogage, optimisation et documentation."""
+    },
+    "📊 Business & Analytics / Analyse & Business Intelligence": {
+        "description": "Assistant for data analysis and business insights / Assistant pour l'analyse de données et BI",
+        "system_prompt": """You are a business intelligence assistant. You help with KPIs, dashboards, predictions, insights.
+Vous êtes un assistant BI. Vous aidez avec KPIs, tableaux de bord, prévisions et analyses business."""
+    }
 }
 
 # ===============================
-# DOMAINES
+# PAGE HEADER
 # ===============================
-DOMAINS = [
-    "💼 RH & Recrutement",
-    "⚖️ Juridique & Compliance",
-    "🏥 Médical & Santé",
-    "🔬 Recherche & Sciences",
-    "💻 Développement & Code",
-    "📊 Analyse & Business Intelligence"
-]
-
-if "current_domain" not in st.session_state:
-    st.session_state.current_domain = DOMAINS[0]
-
-if "documents" not in st.session_state:
-    st.session_state.documents = []
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+st.markdown("""
+# MicroLLM Studio - Enterprise AI Assistant
+**On-Premise Platform / Plateforme locale sécurisée**
+""")
 
 # ===============================
-# UTILS D'INGESTION
+# DOMAIN SELECTION
 # ===============================
-def ingest_pdf(file):
-    reader = PdfReader(file)
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text() + "\n"
-    return text
+domain = st.selectbox(
+    "Select domain / Sélectionnez un domaine",
+    options=list(DOMAINS.keys()),
+    index=0
+)
 
-def ingest_docx(file):
-    doc = docx.Document(file)
-    text = ""
-    for para in doc.paragraphs:
-        text += para.text + "\n"
-    return text
+st.markdown(f"**Domain Description / Description du domaine:** {DOMAINS[domain]['description']}")
 
-def ingest_txt(file):
-    return file.read().decode("utf-8")
+# ===============================
+# FILE UPLOAD
+# ===============================
+st.header("📂 File Ingestion / Téléversement de fichiers")
+uploaded_files = st.file_uploader(
+    "Upload PDF, DOCX, code files (Python, JS, TXT, CSV) / Téléversez vos fichiers PDF, DOCX, code",
+    type=["pdf", "docx", "py", "js", "txt", "csv"],
+    accept_multiple_files=True
+)
 
-def ingest_code(file):
-    return file.read().decode("utf-8")
-
-def ingest_file(file):
-    ext = file.name.split(".")[-1].lower()
-    if ext == "pdf":
-        return ingest_pdf(file)
-    elif ext in ["docx", "doc"]:
-        return ingest_docx(file)
-    elif ext in ["txt", "csv", "py", "js", "java"]:
-        return ingest_txt(file)
+def extract_text(file):
+    """Extract text depending on file type"""
+    if file.type == "application/pdf":
+        reader = PdfReader(file)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() + "\n"
+        return text
+    elif file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        doc = docx.Document(file)
+        text = "\n".join([para.text for para in doc.paragraphs])
+        return text
     else:
-        return None
+        return file.getvalue().decode("utf-8", errors="ignore")
+
+documents_text = ""
+if uploaded_files:
+    for f in uploaded_files:
+        st.info(f"Processing / Traitement : {f.name}")
+        text = extract_text(f)
+        documents_text += f"\n---\n**{f.name}**\n{text}"
+
+if documents_text:
+    st.subheader("📄 Extracted Content / Contenu extrait")
+    st.text_area("Combined text of uploaded files / Texte combiné des fichiers", documents_text, height=300)
 
 # ===============================
-# AI RESPONSE FUNCTION
+# CHAT INTERFACE
 # ===============================
-def generate_ai_response(query, domain):
-    """
-    Utilise OpenAI pour générer une réponse basée sur le domaine et documents ingérés
-    """
-    # Combiner les documents comme contexte
-    context_text = "\n\n".join([doc["content"] for doc in st.session_state.documents])
-    
+st.header("💬 AI Assistant / Assistant IA")
+
+user_input = st.text_input("Enter your question / Posez votre question ici:")
+if st.button("Send / Envoyer") and user_input:
+    system_prompt = DOMAINS[domain]["system_prompt"]
     prompt = f"""
-Tu es un assistant expert pour le domaine {domain}.
-Voici le contexte des documents internes :
-{context_text}
+System / Système :
+{system_prompt}
 
-Réponds à la question suivante de manière claire et concise :
-{query}
+Documents / Documents :
+{documents_text}
+
+User question / Question utilisateur :
+{user_input}
+
+Answer in English and French / Répondre en anglais et français.
 """
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": f"Tu es un assistant expert en {domain}."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.2
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        return f"❌ Erreur OpenAI : {e}"
+    with st.spinner("🧠 Generating AI response / Génération de réponse IA..."):
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2
+            )
+            answer = response.choices[0].message.content
+            st.markdown(f"**AI Response / Réponse IA :**\n\n{answer}")
+        except Exception as e:
+            st.error(f"❌ Error calling OpenAI / Erreur lors de l'appel à OpenAI : {e}")
 
 # ===============================
-# SIDEBAR
+# END OF STREAMLIT
 # ===============================
-with st.sidebar:
-    st.title("Navigation")
-    page = st.radio("Menu", ["🏠 Accueil", "💬 Assistant IA", "📚 Documents", "💻 Analyse Code", "⚙️ Configuration"])
-    
-    st.markdown("---")
-    
-    st.markdown("### Sélection Domaine")
-    selected_domain = st.selectbox("Domaine", DOMAINS, index=DOMAINS.index(st.session_state.current_domain))
-    st.session_state.current_domain = selected_domain
-
-# ===============================
-# PAGE LOGIC
-# ===============================
-if page == "🏠 Accueil":
-    st.header(f"🤖 {SYSTEM_INFO['platform']}")
-    st.subheader(f"Version : {SYSTEM_INFO['version']}")
-    st.markdown("**Fonctionnalités :**")
-    for f in SYSTEM_INFO["features"]:
-        st.write(f"- {f}")
-
-elif page == "📚 Documents":
-    st.header("📂 Ingestion de documents")
-    uploaded_files = st.file_uploader("Importer PDF, DOCX, TXT ou Code", type=["pdf", "docx", "txt", "py", "js", "java", "csv"], accept_multiple_files=True)
-    
-    if uploaded_files:
-        for file in uploaded_files:
-            content = ingest_file(file)
-            if content:
-                doc_data = {
-                    "filename": file.name,
-                    "content": content,
-                    "uploaded_at": datetime.now().isoformat()
-                }
-                st.session_state.documents.append(doc_data)
-                st.success(f"✅ {file.name} ingéré avec succès")
-            else:
-                st.warning(f"⚠️ {file.name} n'a pas pu être ingéré")
-
-elif page == "💬 Assistant IA":
-    st.header(f"💬 Assistant IA - Domaine : {st.session_state.current_domain}")
-    query = st.text_area("Pose ta question ici")
-    if st.button("Envoyer"):
-        if query:
-            st.session_state.messages.append({"role": "user", "content": query})
-            response = generate_ai_response(query, st.session_state.current_domain)
-            st.session_state.messages.append({"role": "assistant", "content": response})
-    
-    # Affichage messages
-    for msg in st.session_state.messages:
-        if msg["role"] == "user":
-            st.markdown(f"**Vous :** {msg['content']}")
-        else:
-            st.markdown(f"**Assistant :** {msg['content']}")
-
-elif page == "💻 Analyse Code":
-    st.header("💻 Analyse de code")
-    code_file = st.file_uploader("Importer un fichier code", type=["py", "js", "java"], key="code_upload")
-    if code_file:
-        code_content = code_file.read().decode("utf-8")
-        st.code(code_content, language="python")
-        st.markdown("**Suggestions d'optimisation :**")
-        if "TODO" in code_content or "FIXME" in code_content:
-            st.write("- Contient des TODO/FIXME à traiter")
-        if len(code_content.splitlines()) > 100:
-            st.write("- Trop long, envisager de découper en fonctions")
-        if "import *" in code_content:
-            st.write("- Éviter les importations globales *")
-
-elif page == "⚙️ Configuration":
-    st.header("⚙️ Configuration")
-    st.write("Clé OpenAI : ", "✅ Détectée" if api_key else "❌ Manquante")
-    st.write(f"Domaine actuel : {st.session_state.current_domain}")
-    st.write(f"Documents ingérés : {len(st.session_state.documents)}")
+st.markdown("---")
+st.info("MicroLLM Studio - All data stays private and secure / Toutes les données restent privées et sécurisées.")
