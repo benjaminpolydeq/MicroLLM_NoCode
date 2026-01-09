@@ -9,6 +9,10 @@ import os
 import streamlit as st
 from datetime import datetime
 
+# Pour traitement fichiers
+import PyPDF2
+import docx
+
 # ===============================
 # PAGE CONFIG
 # ===============================
@@ -20,7 +24,7 @@ st.set_page_config(
 )
 
 # ===============================
-# OPTIONAL: OpenAI SDK (compatible providers)
+# OPTIONAL: OpenAI SDK
 # ===============================
 try:
     from openai import OpenAI
@@ -32,7 +36,7 @@ except Exception:
 # ===============================
 SYSTEM_INFO = {
     "platform": "MicroLLM Studio",
-    "version": "1.1.0-Enterprise-API",
+    "version": "1.2.0-Enterprise-API",
     "base_model": "ARSLM / External LLM",
 }
 
@@ -53,7 +57,6 @@ DOMAINS = {
 # ===============================
 st.sidebar.title("🔐 Configuration API")
 
-# Priorité : Streamlit Secrets > Champ manuel > Variable d'environnement
 api_key = (
     st.secrets.get("OPENAI_API_KEY", None) or
     st.sidebar.text_input("Clé API (OpenAI ou compatible)", type="password").strip() or
@@ -124,6 +127,43 @@ def call_ai_api(user_query: str, domain: str) -> str:
         return f"❌ Erreur API : {e}"
 
 # ===============================
+# PDF / DOCX / TXT UPLOAD
+# ===============================
+def extract_text_from_file(uploaded_file):
+    if uploaded_file is None:
+        return ""
+
+    filename = uploaded_file.name.lower()
+    text = ""
+
+    if filename.endswith(".pdf"):
+        reader = PyPDF2.PdfReader(uploaded_file)
+        for page in reader.pages:
+            text += page.extract_text() + "\n"
+    elif filename.endswith(".docx"):
+        doc = docx.Document(uploaded_file)
+        for para in doc.paragraphs:
+            text += para.text + "\n"
+    elif filename.endswith(".txt"):
+        text = str(uploaded_file.read(), encoding='utf-8')
+    else:
+        st.warning("Format non supporté. Veuillez uploader un PDF, DOCX ou TXT.")
+    return text.strip()
+
+st.subheader("📄 Analyse de document")
+uploaded_file = st.file_uploader("Upload PDF, DOCX ou TXT", type=["pdf", "docx", "txt"])
+
+if uploaded_file:
+    doc_text = extract_text_from_file(uploaded_file)
+    if doc_text:
+        st.text_area("Contenu extrait", value=doc_text, height=200)
+        if st.button("Analyser le document"):
+            st.session_state.messages.append({"role": "user", "content": doc_text})
+            answer = call_ai_api(doc_text, selected_domain)
+            st.session_state.messages.append({"role": "assistant", "content": answer})
+            st.experimental_rerun()
+
+# ===============================
 # CHAT UI
 # ===============================
 st.subheader(f"🧠 Domaine actif : {selected_domain}")
@@ -150,15 +190,9 @@ user_input = st.text_area(
 
 if st.button("Envoyer") and user_input.strip():
     st.session_state.messages.append({"role": "user", "content": user_input})
-
     answer = call_ai_api(user_input, selected_domain)
     st.session_state.messages.append({"role": "assistant", "content": answer})
-
-    # Safe rerun using try-except to prevent redacted error in Cloud
-    try:
-        st.experimental_rerun()
-    except Exception:
-        pass
+    st.experimental_rerun()
 
 # ===============================
 # FOOTER
