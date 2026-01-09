@@ -16,7 +16,10 @@ st.set_page_config( page_title="MicroLLM Studio - Enterprise AI", page_icon="ðŸ¤
 #OPTIONAL: OpenAI SDK (compatible providers)
 #===============================
 
-try: from openai import OpenAI except Exception: OpenAI = None
+try: 
+from openai import OpenAI 
+except Exception: 
+OpenAI = None
 
 #===============================
 #SYSTEM INFO
