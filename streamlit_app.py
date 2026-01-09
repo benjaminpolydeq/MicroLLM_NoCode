@@ -571,7 +571,7 @@ En tant qu'assistant de recherche, je peux contribuer à :
 Partagez-moi vos données, articles ou problématique de recherche pour une analyse scientifique rigoureuse."""
 
         elif "💻 Développement" in domain:
-            response_text = f"""**Assistance technique développement**
+    response_text = f"""**Assistance technique développement**
 
 Requête : {user_query}
 
@@ -597,5 +597,7 @@ En tant qu'expert en développement, je peux vous aider avec :
 - Commentaires inline
 - Documentation technique
 - Guides d'utilisation
-Partagez-
+
+📎 **Suggestion** :
+Partagez votre code, dépôt Git ou description technique pour une analyse détaillée et des recommandations actionnables.
 """
