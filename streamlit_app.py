@@ -8,51 +8,38 @@ Proprietary Software - License Required for Commercial Use
 
 import streamlit as st
 from datetime import datetime
-
 ===============================
-
 PAGE CONFIG
-
 ===============================
 
 st.set_page_config( page_title="MicroLLM Studio - Enterprise AI", page_icon="🤖", layout="wide", initial_sidebar_state="expanded" )
 
 ===============================
-
 SYSTEM INFO
-
 ===============================
 
 SYSTEM_INFO = { "platform": "MicroLLM Studio", "version": "1.0.0-Enterprise", "base_model": "ARSLM", }
 
 ===============================
-
 DOMAINS CONFIG
-
 ===============================
 
 DOMAINS = { "💼 RH & Recrutement": "Expert RH et recrutement", "⚖️ Juridique & Compliance": "Assistant juridique professionnel", "🏥 Médical & Santé": "Assistant médical (professionnels uniquement)", "🔬 Recherche & Sciences": "Assistant de recherche scientifique", "💻 Développement & Code": "Expert développement logiciel", "📊 Analyse & Business Intelligence": "Expert data & BI", }
 
 ===============================
-
 CUSTOM CSS
-
 ===============================
 
 st.markdown( """ <style> body { font-family: Inter, sans-serif; } .header { background: linear-gradient(135deg, #1e3c72, #667eea); padding: 2rem; border-radius: 12px; color: white; margin-bottom: 2rem; } .user-msg { background: #667eea; color: white; padding: 1rem; border-radius: 12px; margin: 1rem 0 1rem 20%; } .assistant-msg { background: #f4f6f8; padding: 1rem; border-radius: 12px; margin: 1rem 20% 1rem 0; border-left: 4px solid #667eea; } </style> """, unsafe_allow_html=True )
 
 ===============================
-
 HEADER
-
 ===============================
 
 st.markdown( f""" <div class="header"> <h1>🤖 MicroLLM Studio</h1> <p>Enterprise On-Premise AI Assistant — Powered by ARSLM</p> <small>Version {SYSTEM_INFO['version']}</small> </div> """, unsafe_allow_html=True )
 
 ===============================
-
 SIDEBAR
-
 ===============================
 
 st.sidebar.title("⚙️ Configuration") selected_domain = st.sidebar.selectbox( "Domaine spécialisé", list(DOMAINS.keys()) )
@@ -60,9 +47,7 @@ st.sidebar.title("⚙️ Configuration") selected_domain = st.sidebar.selectbox(
 st.sidebar.markdown("---") st.sidebar.markdown("🔒 100% On-Premise") st.sidebar.markdown("🧠 Domaine spécialisé") st.sidebar.markdown("📚 No-Code Interface")
 
 ===============================
-
 SESSION STATE
-
 ===============================
 
 if "messages" not in st.session_state: st.session_state.messages = []
