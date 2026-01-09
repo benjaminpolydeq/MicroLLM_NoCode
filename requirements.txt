@@ -1,13 +1,2 @@
-# Framework
 streamlit>=1.28.0
-
-# RAG et recherche sémantique
-sentence-transformers>=2.2.0
-chromadb>=0.4.22
-
-# Dépendances nécessaires
-numpy>=1.21.0
-torch>=2.0.0
-
-# Utilitaires
-pydantic>=2.0.0
+plotly>=5.0.0
