@@ -17,4 +17,3 @@ venv/
 *.xlsx
 *.pdf
 *.docx
-.streamlit/secrets.toml
