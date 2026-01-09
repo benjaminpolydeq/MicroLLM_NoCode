@@ -43,7 +43,9 @@ api_key = st.sidebar.text_input( "Clé API (OpenAI ou compatible)", type="passwo
 
 model_name = st.sidebar.text_input( "Modèle", value="gpt-4o-mini" )
 
-st.sidebar.markdown("---") selected_domain = st.sidebar.selectbox("Domaine", list(DOMAINS.keys()))
+st.sidebar.markdown("---") selected_domain =
+
+st.sidebar.selectbox("Domaine", list(DOMAINS.keys()))
 
 #===============================
 #HEADER
