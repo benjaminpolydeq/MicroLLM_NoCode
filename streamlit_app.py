@@ -1,15 +1,12 @@
 """
 MicroLLM Studio - Enterprise On-Premise AI Assistant
 API-enabled version (OpenAI-compatible)
-
-Copyright © 2025 Benjamin Amaad Kama. All Rights Reserved.
+Clé API sécurisée via st.secrets
 """
 
 import os
 import streamlit as st
 from datetime import datetime
-
-# Pour traitement fichiers
 import PyPDF2
 import docx
 
@@ -36,7 +33,7 @@ except Exception:
 # ===============================
 SYSTEM_INFO = {
     "platform": "MicroLLM Studio",
-    "version": "1.2.0-Enterprise-API",
+    "version": "1.5.0-Enterprise-API",
     "base_model": "ARSLM / External LLM",
 }
 
@@ -57,14 +54,11 @@ DOMAINS = {
 # ===============================
 st.sidebar.title("🔐 Configuration API")
 
-api_key = (
-    st.secrets.get("OPENAI_API_KEY", None) or
-    st.sidebar.text_input("Clé API (OpenAI ou compatible)", type="password").strip() or
-    os.getenv("OPENAI_API_KEY", "").strip()
-)
+# 🔒 Récupération sécurisée de la clé via st.secrets
+api_key = st.secrets.get("OPENAI_API_KEY", None)
 
 if not api_key:
-    st.sidebar.warning("❌ Veuillez renseigner votre clé API OpenAI valide !")
+    st.sidebar.error("❌ Clé API OpenAI manquante ! Ajoutez-la dans st.secrets.toml")
 
 model_name = st.sidebar.text_input(
     "Modèle",
@@ -104,7 +98,7 @@ if "messages" not in st.session_state:
 # ===============================
 def call_ai_api(user_query: str, domain: str) -> str:
     if not api_key:
-        return "❌ Clé API manquante ou invalide. Veuillez renseigner votre clé dans la barre latérale."
+        return "❌ Clé API manquante ou invalide. Veuillez ajouter votre clé dans st.secrets.toml"
 
     if OpenAI is None:
         return "❌ SDK OpenAI non installé. Ajoutez `openai` à requirements.txt."
@@ -139,7 +133,9 @@ def extract_text_from_file(uploaded_file):
     if filename.endswith(".pdf"):
         reader = PyPDF2.PdfReader(uploaded_file)
         for page in reader.pages:
-            text += page.extract_text() + "\n"
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text + "\n"
     elif filename.endswith(".docx"):
         doc = docx.Document(uploaded_file)
         for para in doc.paragraphs:
@@ -150,49 +146,45 @@ def extract_text_from_file(uploaded_file):
         st.warning("Format non supporté. Veuillez uploader un PDF, DOCX ou TXT.")
     return text.strip()
 
-st.subheader("📄 Analyse de document")
-uploaded_file = st.file_uploader("Upload PDF, DOCX ou TXT", type=["pdf", "docx", "txt"])
-
-if uploaded_file:
-    doc_text = extract_text_from_file(uploaded_file)
-    if doc_text:
-        st.text_area("Contenu extrait", value=doc_text, height=200)
-        if st.button("Analyser le document"):
-            st.session_state.messages.append({"role": "user", "content": doc_text})
-            answer = call_ai_api(doc_text, selected_domain)
-            st.session_state.messages.append({"role": "assistant", "content": answer})
-            st.experimental_rerun()
-
 # ===============================
-# CHAT UI
+# CONTAINERS POUR CHAT ET DOC
 # ===============================
-st.subheader(f"🧠 Domaine actif : {selected_domain}")
+doc_container = st.container()
+chat_container = st.container()
 
-for msg in st.session_state.messages:
-    if msg["role"] == "user":
-        st.markdown(
-            f"<div style='background:#667eea;color:white;padding:1rem;border-radius:12px;margin:1rem 0 1rem 20%;'>{msg['content']}</div>",
-            unsafe_allow_html=True
-        )
-    else:
-        st.markdown(
-            f"<div style='background:#f4f6f8;padding:1rem;border-radius:12px;margin:1rem 20% 1rem 0;border-left:4px solid #667eea;'>{msg['content']}</div>",
-            unsafe_allow_html=True
-        )
+# ===== Document Upload / Analyse =====
+with doc_container:
+    st.subheader("📄 Analyse de document")
+    uploaded_file = st.file_uploader("Upload PDF, DOCX ou TXT", type=["pdf", "docx", "txt"])
+    if uploaded_file:
+        doc_text = extract_text_from_file(uploaded_file)
+        if doc_text:
+            st.text_area("Contenu extrait", value=doc_text, height=200)
+            if st.button("Analyser le document", key="analyze_doc"):
+                st.session_state.messages.append({"role": "user", "content": doc_text})
+                answer = call_ai_api(doc_text, selected_domain)
+                st.session_state.messages.append({"role": "assistant", "content": answer})
 
-# ===============================
-# INPUT
-# ===============================
-user_input = st.text_area(
-    "Votre message",
-    placeholder="Posez votre question…"
-)
+# ===== Chat UI =====
+with chat_container:
+    st.subheader(f"🧠 Domaine actif : {selected_domain}")
+    for msg in st.session_state.messages:
+        if msg["role"] == "user":
+            st.markdown(
+                f"<div style='background:#667eea;color:white;padding:1rem;border-radius:12px;margin:1rem 0 1rem 20%;'>{msg['content']}</div>",
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                f"<div style='background:#f4f6f8;padding:1rem;border-radius:12px;margin:1rem 20% 1rem 0;border-left:4px solid #667eea;'>{msg['content']}</div>",
+                unsafe_allow_html=True
+            )
 
-if st.button("Envoyer") and user_input.strip():
-    st.session_state.messages.append({"role": "user", "content": user_input})
-    answer = call_ai_api(user_input, selected_domain)
-    st.session_state.messages.append({"role": "assistant", "content": answer})
-    st.experimental_rerun()
+    user_input = st.text_area("Votre message", placeholder="Posez votre question…")
+    if st.button("Envoyer", key="send_chat") and user_input.strip():
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        answer = call_ai_api(user_input, selected_domain)
+        st.session_state.messages.append({"role": "assistant", "content": answer})
 
 # ===============================
 # FOOTER
