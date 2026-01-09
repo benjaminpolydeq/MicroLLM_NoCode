@@ -597,5 +597,5 @@ En tant qu'expert en développement, je peux vous aider avec :
 - Commentaires inline
 - Documentation technique
 - Guides d'utilisation
-"""
 Partagez-
+"""
