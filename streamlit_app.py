@@ -1,155 +1,106 @@
-"""
-MicroLLM Studio - Enterprise On-Premise AI Assistant
-Built on ARSLM - Secure, Private, Specialized AI for Sensitive Domains
+""" MicroLLM Studio - Enterprise On-Premise AI Assistant API-enabled version (OpenAI-compatible)
 
-Copyright © 2025 Benjamin Amaad Kama. All Rights Reserved.
-Proprietary Software - License Required for Commercial Use
-"""
+Copyright © 2025 Benjamin Amaad Kama. All Rights Reserved. """
 
-import streamlit as st
-from datetime import datetime
+import os import streamlit as st from datetime import datetime
+
 ===============================
+
 PAGE CONFIG
+
 ===============================
 
 st.set_page_config( page_title="MicroLLM Studio - Enterprise AI", page_icon="🤖", layout="wide", initial_sidebar_state="expanded" )
 
 ===============================
+
+OPTIONAL: OpenAI SDK (compatible providers)
+
+===============================
+
+try: from openai import OpenAI except Exception: OpenAI = None
+
+===============================
+
 SYSTEM INFO
-===============================
-
-SYSTEM_INFO = { "platform": "MicroLLM Studio", "version": "1.0.0-Enterprise", "base_model": "ARSLM", }
 
 ===============================
-DOMAINS CONFIG
-===============================
 
-DOMAINS = { "💼 RH & Recrutement": "Expert RH et recrutement", "⚖️ Juridique & Compliance": "Assistant juridique professionnel", "🏥 Médical & Santé": "Assistant médical (professionnels uniquement)", "🔬 Recherche & Sciences": "Assistant de recherche scientifique", "💻 Développement & Code": "Expert développement logiciel", "📊 Analyse & Business Intelligence": "Expert data & BI", }
+SYSTEM_INFO = { "platform": "MicroLLM Studio", "version": "1.1.0-Enterprise-API", "base_model": "ARSLM / External LLM", }
 
 ===============================
-CUSTOM CSS
-===============================
 
-st.markdown( """ <style> body { font-family: Inter, sans-serif; } .header { background: linear-gradient(135deg, #1e3c72, #667eea); padding: 2rem; border-radius: 12px; color: white; margin-bottom: 2rem; } .user-msg { background: #667eea; color: white; padding: 1rem; border-radius: 12px; margin: 1rem 0 1rem 20%; } .assistant-msg { background: #f4f6f8; padding: 1rem; border-radius: 12px; margin: 1rem 20% 1rem 0; border-left: 4px solid #667eea; } </style> """, unsafe_allow_html=True )
+DOMAINS
 
 ===============================
+
+DOMAINS = { "💼 RH & Recrutement": "Tu es un expert RH et recrutement. Réponds de manière professionnelle et confidentielle.", "⚖️ Juridique & Compliance": "Tu es un assistant juridique. Réponses informatives uniquement, jamais de conseil légal.", "🏥 Médical & Santé": "Tu es un assistant médical pour professionnels de santé. Ne remplace jamais un avis médical.", "🔬 Recherche & Sciences": "Tu es un assistant de recherche scientifique rigoureux et factuel.", "💻 Développement & Code": "Tu es un expert en développement logiciel et architecture.", "📊 Analyse & Business Intelligence": "Tu es un expert data et business intelligence, orienté décisions.", }
+
+===============================
+
+SIDEBAR – API CONFIG
+
+===============================
+
+st.sidebar.title("🔐 Configuration API")
+
+api_key = st.sidebar.text_input( "Clé API (OpenAI ou compatible)", type="password", value=os.getenv("OPENAI_API_KEY", "") )
+
+model_name = st.sidebar.text_input( "Modèle", value="gpt-4o-mini" )
+
+st.sidebar.markdown("---") selected_domain = st.sidebar.selectbox("Domaine", list(DOMAINS.keys()))
+
+===============================
+
 HEADER
-===============================
-
-st.markdown( f""" <div class="header"> <h1>🤖 MicroLLM Studio</h1> <p>Enterprise On-Premise AI Assistant — Powered by ARSLM</p> <small>Version {SYSTEM_INFO['version']}</small> </div> """, unsafe_allow_html=True )
 
 ===============================
-SIDEBAR
-===============================
 
-st.sidebar.title("⚙️ Configuration") selected_domain = st.sidebar.selectbox( "Domaine spécialisé", list(DOMAINS.keys()) )
-
-st.sidebar.markdown("---") st.sidebar.markdown("🔒 100% On-Premise") st.sidebar.markdown("🧠 Domaine spécialisé") st.sidebar.markdown("📚 No-Code Interface")
+st.markdown( f""" <div style="background:linear-gradient(135deg,#1e3c72,#667eea);padding:2rem;border-radius:12px;color:white;"> <h1>🤖 MicroLLM Studio</h1> <p>Enterprise AI Assistant – API Secure Mode</p> <small>Version {SYSTEM_INFO['version']}</small> </div> """, unsafe_allow_html=True )
 
 ===============================
+
 SESSION STATE
+
 ===============================
 
 if "messages" not in st.session_state: st.session_state.messages = []
 
 ===============================
 
-AI ENGINE (SIMULATED / LOCAL)
+AI ENGINE (API MODE)
 
 ===============================
 
-def call_ai_engine(user_query: str, domain: str) -> str: """ Générateur de réponse simulée (on‑premise / no API externe) """
+def call_ai_api(user_query: str, domain: str) -> str: if not api_key: return "❌ Clé API manquante. Veuillez renseigner votre clé dans la barre latérale."
 
-if "RH" in domain:
-    return f"""**Analyse RH Professionnelle**
+if OpenAI is None:
+    return "❌ SDK OpenAI non installé. Ajoutez `openai` à requirements.txt."
 
-Demande : {user_query}
+client = OpenAI(api_key=api_key)
 
-Je peux vous assister sur :
+system_prompt = DOMAINS.get(domain, "Tu es un assistant professionnel.")
 
-Analyse de CV et profils
+messages = [
+    {"role": "system", "content": system_prompt},
+]
 
-Rédaction d'annonces et fiches de poste
+# Historique limité (sécurité / coût)
+for msg in st.session_state.messages[-6:]:
+    messages.append(msg)
 
-Conseils en gestion RH
+messages.append({"role": "user", "content": user_query})
 
-Conformité et bonnes pratiques
+try:
+    response = client.chat.completions.create(
+        model=model_name,
+        messages=messages,
+        temperature=0.3
+    )
+    return response.choices[0].message.content
 
-
-📎 Partagez les documents pour une analyse détaillée. """
-
-if "Juridique" in domain:
-    return f"""**Analyse Juridique (Informationnelle)**
-
-Sujet : {user_query}
-
-Assistance possible :
-
-Analyse contractuelle
-
-Identification de risques juridiques
-
-Conformité RGPD
-
-
-⚠️ Ceci ne constitue pas un conseil juridique. """
-
-if "Médical" in domain:
-    return f"""**Support Médical Professionnel**
-
-Demande : {user_query}
-
-Aide au diagnostic différentiel
-
-Analyse documentaire médicale
-
-Synthèse scientifique
-
-
-⚠️ Réservé aux professionnels de santé. ⚠️ Ne remplace pas une consultation médicale. """
-
-if "Recherche" in domain:
-    return f"""**Assistance Recherche Scientifique**
-
-Projet : {user_query}
-
-Revue de littérature
-
-Analyse critique
-
-Aide à la rédaction scientifique """
-
-if "Développement" in domain: return f"""Assistance Technique Développement
-
-
-Requête : {user_query}
-
-Revue et refactoring de code
-
-Debug et optimisation
-
-Génération de code production-ready
-
-Documentation technique
-
-
-📎 Partagez votre code ou dépôt Git. """
-
-if "Business" in domain:
-    return f"""**Analyse Business & BI**
-
-Sujet : {user_query}
-
-Analyse de KPIs
-
-Génération de rapports
-
-Insights stratégiques
-
-Aide à la décision """
-
-return "Assistant prêt à vous aider."
-
+except Exception as e:
+    return f"❌ Erreur API : {e}"
 
 ===============================
 
@@ -159,7 +110,7 @@ CHAT UI
 
 st.subheader(f"🧠 Domaine actif : {selected_domain}")
 
-for msg in st.session_state.messages: if msg["role"] == "user": st.markdown(f"<div class='user-msg'>{msg['content']}</div>", unsafe_allow_html=True) else: st.markdown(f"<div class='assistant-msg'>{msg['content']}</div>", unsafe_allow_html=True)
+for msg in st.session_state.messages: if msg["role"] == "user": st.markdown(f"<div style='background:#667eea;color:white;padding:1rem;border-radius:12px;margin:1rem 0 1rem 20%;'>{msg['content']}</div>", unsafe_allow_html=True) else: st.markdown(f"<div style='background:#f4f6f8;padding:1rem;border-radius:12px;margin:1rem 20% 1rem 0;border-left:4px solid #667eea;'>{msg['content']}</div>", unsafe_allow_html=True)
 
 ===============================
 
@@ -171,8 +122,8 @@ user_input = st.text_area("Votre message", placeholder="Posez votre question…"
 
 if st.button("Envoyer") and user_input.strip(): st.session_state.messages.append({"role": "user", "content": user_input})
 
-response = call_ai_engine(user_input, selected_domain)
-st.session_state.messages.append({"role": "assistant", "content": response})
+answer = call_ai_api(user_input, selected_domain)
+st.session_state.messages.append({"role": "assistant", "content": answer})
 
 st.experimental_rerun()
 
@@ -182,4 +133,4 @@ FOOTER
 
 ===============================
 
-st.markdown("---") st.caption(f"© {datetime.now().year} MicroLLM Studio – ARSLM Enterprise")
+st.markdown("---") st.caption(f"© {datetime.now().year} MicroLLM Studio – Secure API Mode")
