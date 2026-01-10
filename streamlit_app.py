@@ -8,6 +8,7 @@ import streamlit as st
 from datetime import datetime
 from io import BytesIO
 import base64
+import json
 
 # Import optionnels
 try:
@@ -108,38 +109,6 @@ st.markdown("""
         margin-top: 0;
     }
     
-    .arslm-announce {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 2rem;
-        border-radius: 15px;
-        margin: 2rem 0;
-        box-shadow: 0 8px 30px rgba(102, 126, 234, 0.3);
-    }
-    
-    .arslm-announce h2 {
-        margin: 0 0 1rem 0;
-        font-size: 2rem;
-    }
-    
-    .collab-button {
-        background: white;
-        color: #667eea;
-        padding: 1rem 2rem;
-        border-radius: 30px;
-        text-decoration: none;
-        display: inline-block;
-        font-weight: 700;
-        margin-top: 1rem;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    }
-    
-    .collab-button:hover {
-        transform: scale(1.05);
-        box-shadow: 0 6px 25px rgba(0,0,0,0.3);
-    }
-    
     .user-msg {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -166,6 +135,7 @@ st.markdown("""
         color: white;
         text-align: center;
         box-shadow: 0 6px 20px rgba(30, 60, 114, 0.3);
+        margin-bottom: 1rem;
     }
     
     .metric-value {
@@ -195,6 +165,82 @@ st.markdown("""
         padding: 1rem;
         border-radius: 8px;
     }
+    
+    .analysis-result {
+        background: white;
+        border: 2px solid #667eea;
+        border-radius: 12px;
+        padding: 2rem;
+        margin: 1.5rem 0;
+        box-shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
+    }
+    
+    .analysis-result h4 {
+        color: #1e3c72;
+        margin-top: 0;
+        font-size: 1.3rem;
+    }
+    
+    .contact-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2.5rem;
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+        margin: 2rem 0;
+    }
+    
+    .contact-card h2 {
+        margin-top: 0;
+        font-size: 2.2rem;
+    }
+    
+    .contact-input {
+        background: rgba(255,255,255,0.15);
+        border: 2px solid rgba(255,255,255,0.3);
+        border-radius: 8px;
+        padding: 0.8rem;
+        color: white;
+        width: 100%;
+        margin: 0.5rem 0;
+    }
+    
+    .send-button {
+        background: white;
+        color: #667eea;
+        padding: 1rem 2.5rem;
+        border-radius: 30px;
+        border: none;
+        font-weight: 700;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        width: 100%;
+        margin-top: 1rem;
+    }
+    
+    .send-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+    }
+    
+    .download-button {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+        padding: 0.8rem 1.5rem;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-block;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        margin: 0.5rem 0;
+    }
+    
+    .download-button:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -203,8 +249,8 @@ st.markdown("""
 # ===============================
 SYSTEM_INFO = {
     "platform": "MicroLLM Studio",
-    "version": "2.0.0-Beta",
-    "base_model": "ARSLM (en développement) + OpenAI",
+    "version": "2.1.0-Beta",
+    "base_model": "ARSLM (en développement) + OpenAI GPT-4",
     "contact": "flywithjesus@outlook.com",
     "location": "Nguekhokh, Mbour, Sénégal",
     "author": "Benjamin Amaad Kama"
@@ -247,6 +293,83 @@ DOMAINS = {
 }
 
 # ===============================
+# ANALYSIS TEMPLATES
+# ===============================
+ANALYSIS_TEMPLATES = {
+    "📋 Résumé exécutif": """Analyse ce document et fournis un résumé exécutif structuré avec:
+1. Vue d'ensemble (2-3 phrases)
+2. Points clés (3-5 points principaux)
+3. Recommandations ou conclusions principales
+
+Document:
+{text}""",
+    
+    "🔍 Analyse détaillée": """Effectue une analyse approfondie de ce document en couvrant:
+1. Contexte et objectif du document
+2. Structure et organisation
+3. Points principaux développés
+4. Arguments et preuves présentés
+5. Conclusions et implications
+
+Document:
+{text}""",
+    
+    "📝 Points clés": """Extrais et liste les points clés de ce document sous forme de bullet points structurés par thème ou section.
+
+Document:
+{text}""",
+    
+    "❓ Q&A": """Génère 5-10 questions pertinentes sur ce document avec leurs réponses détaillées. Les questions doivent couvrir les aspects importants du contenu.
+
+Document:
+{text}""",
+    
+    "⚖️ Analyse juridique": """En tant qu'assistant juridique, analyse ce document en identifiant:
+1. Type de document et parties concernées
+2. Clauses principales et obligations
+3. Clauses potentiellement problématiques ou à risque
+4. Éléments manquants ou recommandations
+5. Points d'attention particuliers
+
+RAPPEL: Cette analyse est informative uniquement et ne constitue pas un conseil juridique.
+
+Document:
+{text}""",
+    
+    "🏥 Analyse médicale": """En tant qu'assistant médical, analyse ce dossier en couvrant:
+1. Informations patient et contexte
+2. Symptômes et signes cliniques rapportés
+3. Examens et résultats
+4. Diagnostic différentiel possible
+5. Éléments à surveiller ou investigations complémentaires suggérées
+
+IMPORTANT: Cette analyse est destinée aux professionnels de santé uniquement et ne remplace pas un avis médical qualifié.
+
+Document:
+{text}""",
+    
+    "💻 Code Review": """Effectue une revue de code professionnelle en analysant:
+1. Qualité et lisibilité du code
+2. Respect des bonnes pratiques et conventions
+3. Bugs potentiels ou erreurs identifiées
+4. Problèmes de sécurité éventuels
+5. Suggestions d'optimisation et d'amélioration
+6. Note globale sur 10 avec justification
+
+Code:
+{text}""",
+    
+    "📊 Extraction données": """Extrais et structure toutes les données pertinentes de ce document:
+1. Données numériques (chiffres, statistiques, dates)
+2. Informations structurées (tableaux, listes)
+3. Entités nommées (personnes, organisations, lieux)
+4. Présente les résultats sous forme de tableau ou liste structurée
+
+Document:
+{text}"""
+}
+
+# ===============================
 # SESSION STATE
 # ===============================
 if "messages" not in st.session_state:
@@ -257,6 +380,9 @@ if "current_domain" not in st.session_state:
 
 if "page" not in st.session_state:
     st.session_state.page = "Accueil"
+
+if "analysis_history" not in st.session_state:
+    st.session_state.analysis_history = []
 
 # ===============================
 # FUNCTIONS
@@ -309,7 +435,7 @@ def extract_text_from_txt(uploaded_file):
         return f"❌ Erreur TXT: {str(e)}"
 
 def call_openai_api(messages, domain):
-    """Appel à l'API OpenAI"""
+    """Appel à l'API OpenAI pour le chat"""
     api_key = st.secrets.get("OPENAI_API_KEY") if hasattr(st, 'secrets') else None
     
     if not api_key:
@@ -323,7 +449,7 @@ def call_openai_api(messages, domain):
         domain_info = DOMAINS[domain]
         
         api_messages = [{"role": "system", "content": domain_info["system_prompt"]}]
-        api_messages.extend(messages[-8:])  # 8 derniers messages
+        api_messages.extend(messages[-8:])
         
         response = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -336,6 +462,69 @@ def call_openai_api(messages, domain):
     except Exception as e:
         return f"❌ Erreur API: {str(e)}"
 
+def analyze_document_with_gpt(text, analysis_type, custom_question=None):
+    """Analyse un document avec GPT-4"""
+    api_key = st.secrets.get("OPENAI_API_KEY") if hasattr(st, 'secrets') else None
+    
+    if not api_key:
+        return "❌ Clé API OpenAI manquante. Configurez-la dans les secrets Streamlit."
+    
+    if not OPENAI_AVAILABLE:
+        return "❌ SDK OpenAI non disponible."
+    
+    try:
+        client = OpenAI(api_key=api_key)
+        
+        # Préparer le prompt
+        if custom_question:
+            prompt = f"{custom_question}\n\nDocument:\n{text}"
+        else:
+            template = ANALYSIS_TEMPLATES.get(analysis_type, ANALYSIS_TEMPLATES["📋 Résumé exécutif"])
+            prompt = template.format(text=text)
+        
+        # Limiter la taille du texte si trop long
+        max_chars = 12000
+        if len(prompt) > max_chars:
+            prompt = prompt[:max_chars] + "\n\n[Document tronqué pour respecter les limites de l'API]"
+        
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "Tu es un assistant d'analyse de documents expert. Fournis des analyses précises, structurées et professionnelles."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.2,
+            max_tokens=3000
+        )
+        
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"❌ Erreur lors de l'analyse: {str(e)}"
+
+def create_download_link(text, filename):
+    """Crée un lien de téléchargement pour le texte"""
+    b64 = base64.b64encode(text.encode()).decode()
+    href = f'<a href="data:file/txt;base64,{b64}" download="{filename}" class="download-button">📥 Télécharger l\'analyse</a>'
+    return href
+
+def send_email_notification(name, email, subject, message):
+    """Simule l'envoi d'un email (à connecter à un vrai service SMTP)"""
+    # Dans une vraie application, utilisez smtplib ou un service comme SendGrid
+    email_data = {
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "name": name,
+        "email": email,
+        "subject": subject,
+        "message": message
+    }
+    
+    # Pour le moment, on sauvegarde dans l'historique
+    if "contact_history" not in st.session_state:
+        st.session_state.contact_history = []
+    st.session_state.contact_history.append(email_data)
+    
+    return True
+
 # ===============================
 # SIDEBAR
 # ===============================
@@ -347,7 +536,7 @@ with st.sidebar:
     # Navigation
     page = st.radio(
         "Navigation",
-        ["🏠 Accueil", "💬 Chat IA", "📄 Traitement Documents", "🔧 À propos ARSLM", "📞 Contact"],
+        ["🏠 Accueil", "💬 Chat IA", "📄 Analyse Documents", "📞 Contact"],
         label_visibility="collapsed"
     )
     st.session_state.page = page
@@ -378,18 +567,16 @@ with st.sidebar:
 
 # ===== PAGE: ACCUEIL =====
 if st.session_state.page == "🏠 Accueil":
-    # Header
     st.markdown(f"""
     <div class="main-header">
         <h1>🤖 MicroLLM Studio</h1>
         <div class="subtitle">Plateforme d'IA d'Entreprise - Sécurisée et Spécialisée</div>
         <div class="arslm-badge">
-            Powered by ARSLM (en développement) + OpenAI
+            Powered by ARSLM + OpenAI GPT-4
         </div>
     </div>
     """, unsafe_allow_html=True)
     
-    # Présentation
     col1, col2 = st.columns([2, 1])
     
     with col1:
@@ -409,29 +596,11 @@ if st.session_state.page == "🏠 Accueil":
         - ⚡ **Rapide** : Réponses en quelques secondes
         """)
         
-        st.markdown("### 🚀 Fonctionnalités actuelles")
-        
         features = [
-            {
-                "icon": "💬",
-                "title": "Chat IA Spécialisé",
-                "desc": "Conversez avec un assistant expert dans votre domaine"
-            },
-            {
-                "icon": "📄",
-                "title": "Traitement de Documents",
-                "desc": "Analysez PDF, Word, Code avec extraction intelligente"
-            },
-            {
-                "icon": "🔍",
-                "title": "Analyse Contextuelle",
-                "desc": "Compréhension sémantique de vos documents"
-            },
-            {
-                "icon": "📊",
-                "title": "Rapports Automatisés",
-                "desc": "Génération de résumés et analyses détaillées"
-            }
+            {"icon": "💬", "title": "Chat IA Spécialisé", "desc": "Conversez avec un assistant expert dans votre domaine"},
+            {"icon": "📄", "title": "Analyse de Documents", "desc": "Analysez PDF, Word, Code avec GPT-4"},
+            {"icon": "🔍", "title": "8 Types d'Analyses", "desc": "Résumé, juridique, médical, code review..."},
+            {"icon": "📊", "title": "Export des Résultats", "desc": "Téléchargez vos analyses au format texte"}
         ]
         
         for feat in features:
@@ -453,140 +622,4 @@ if st.session_state.page == "🏠 Accueil":
         
         st.markdown(f"""
         <div class="metric-card">
-            <div class="metric-label">Messages</div>
-            <div class="metric-value">{len(st.session_state.messages)}</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("### 🎯 Domaines disponibles")
-        for domain_name, domain_info in DOMAINS.items():
-            st.markdown(f"{domain_info['icon']} {domain_name}")
-
-# ===== PAGE: CHAT IA =====
-elif st.session_state.page == "💬 Chat IA":
-    st.markdown(f"### 💬 Assistant IA - {st.session_state.current_domain}")
-    
-    domain_info = DOMAINS[st.session_state.current_domain]
-    
-    st.markdown(f"""
-    <div class="info-box">
-        <strong>{domain_info['icon']} Domaine actif :</strong> {st.session_state.current_domain}<br>
-        <strong>Mode :</strong> Chat conversationnel avec contexte
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Afficher l'historique
-    for msg in st.session_state.messages:
-        if msg["role"] == "user":
-            st.markdown(f"""
-            <div class="user-msg">
-                <strong>👤 Vous:</strong><br>{msg['content']}
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown(f"""
-            <div class="assistant-msg">
-                <strong>🤖 Assistant {st.session_state.current_domain}:</strong><br>
-                {msg['content']}
-            </div>
-            """, unsafe_allow_html=True)
-    
-    # Input
-    with st.form("chat_form", clear_on_submit=True):
-        user_input = st.text_area(
-            "Votre message",
-            placeholder=f"Posez une question liée au domaine {st.session_state.current_domain}...",
-            height=120
-        )
-        
-        col1, col2, col3 = st.columns([1, 1, 2])
-        with col1:
-            submitted = st.form_submit_button("📤 Envoyer", type="primary", use_container_width=True)
-        with col2:
-            examples = st.form_submit_button("💡 Exemples", use_container_width=True)
-        
-        if submitted and user_input.strip():
-            st.session_state.messages.append({"role": "user", "content": user_input})
-            
-            with st.spinner("🤖 Génération..."):
-                response = call_openai_api(st.session_state.messages, st.session_state.current_domain)
-            
-            st.session_state.messages.append({"role": "assistant", "content": response})
-            st.rerun()
-        
-        if examples:
-            st.info("💡 Exemples de questions selon le domaine actif")
-
-# ===== PAGE: TRAITEMENT DOCUMENTS =====
-elif st.session_state.page == "📄 Traitement Documents":
-    st.markdown("### 📄 Traitement Intelligent de Documents")
-    
-    st.markdown("""
-    <div class="info-box">
-        <h4>📚 Formats supportés</h4>
-        <ul>
-            <li>📕 PDF - Documents Adobe (texte extractible)</li>
-            <li>📘 DOCX - Microsoft Word</li>
-            <li>📄 TXT - Fichiers texte brut</li>
-            <li>💻 Code - Python, JavaScript, Java, etc.</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    uploaded_file = st.file_uploader(
-        "📁 Choisir un fichier",
-        type=["pdf", "docx", "txt", "py", "js", "java", "cpp", "md"],
-        help="Glissez-déposez ou cliquez"
-    )
-    
-    if uploaded_file:
-        file_size = uploaded_file.size / 1024 / 1024
-        st.success(f"✅ **{uploaded_file.name}** ({file_size:.2f} MB)")
-        
-        if st.button("🔍 Extraire le texte", type="primary"):
-            with st.spinner("📄 Extraction..."):
-                filename = uploaded_file.name.lower()
-                
-                if filename.endswith(".pdf"):
-                    text = extract_text_from_pdf(uploaded_file) if PDF_AVAILABLE else "❌ PyPDF2 non disponible"
-                elif filename.endswith(".docx"):
-                    text = extract_text_from_docx(uploaded_file) if DOCX_AVAILABLE else "❌ python-docx non disponible"
-                else:
-                    text = extract_text_from_txt(uploaded_file)
-                
-                st.session_state.extracted_text = text
-        
-        if "extracted_text" in st.session_state and st.session_state.extracted_text:
-            text = st.session_state.extracted_text
-            
-            if not text.startswith("❌") and not text.startswith("⚠️"):
-                word_count = len(text.split())
-                char_count = len(text)
-                
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("📝 Mots", f"{word_count:,}")
-                with col2:
-                    st.metric("🔤 Caractères", f"{char_count:,}")
-                with col3:
-                    st.metric("📄 Lignes", f"{text.count(chr(10)) + 1:,}")
-                
-                with st.expander("👁️ Aperçu (500 premiers caractères)"):
-                    st.text(text[:500] + "...")
-                
-                st.markdown("---")
-                st.markdown("### 🧠 Analyse IA du document")
-                
-                analysis_types = {
-                    "📋 Résumé exécutif": "Crée un résumé concis et professionnel",
-                    "🔍 Analyse détaillée": "Analyse approfondie point par point",
-                    "• Points clés": "Liste les points essentiels en bullet points",
-                    "❓ Q&A": "Génère des questions/réponses pertinentes",
-                    "⚖️ Analyse juridique": "Identifie clauses et risques (contrats)",
-                    "🏥 Analyse médicale": "Analyse clinique (dossiers médicaux)",
-                    "💻 Code review": "Analyse qualité code, bugs, optimisations",
-                    "📊 Extraction données": "Extrait données structurées (tableaux, chiffres)"
-                }
-                
-                analysis_type = st.selectbox("Type d'analyse", list(analysis_types.keys()))
-                custom_q = st.text
+            <div class="metric-l
