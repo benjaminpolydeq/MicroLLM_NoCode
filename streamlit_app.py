@@ -355,14 +355,13 @@ with st.sidebar:
 # PAGE: ACCUEIL
 # ===============================
 if st.session_state.page == "🏠 Accueil":
-    header_html = f"""
+    st.markdown("""
     <div class="main-header">
         <h1>🤖 MicroLLM Studio</h1>
         <div class="subtitle">Plateforme d'IA d'Entreprise - Sécurisée et Spécialisée</div>
         <div class="arslm-badge">Powered by ARSLM + OpenAI GPT-4</div>
     </div>
-    """
-    st.markdown(header_html, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
     
     col1, col2 = st.columns([2, 1])
     
@@ -385,17 +384,16 @@ if st.session_state.page == "🏠 Accueil":
         ]
         
         for f in features:
-            card_html = f"""
+            st.markdown(f"""
             <div class="feature-card">
                 <h3>{f['icon']} {f['title']}</h3>
                 <p>{f['desc']}</p>
             </div>
-            """
-            st.markdown(card_html, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
     
     with col2:
         st.markdown("### 📊 Stats")
-        metric_html = f"""
+        st.markdown(f"""
         <div class="metric-card">
             <div>Domaines</div>
             <div class="metric-value">{len(DOMAINS)}</div>
@@ -404,8 +402,7 @@ if st.session_state.page == "🏠 Accueil":
             <div>Analyses</div>
             <div class="metric-value">{len(st.session_state.analysis_history)}</div>
         </div>
-        """
-        st.markdown(metric_html, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
 # ===============================
 # PAGE: CHAT IA
@@ -413,19 +410,17 @@ if st.session_state.page == "🏠 Accueil":
 elif st.session_state.page == "💬 Chat IA":
     st.markdown(f"### 💬 Assistant IA - {st.session_state.current_domain}")
     
-    info_html = f"""
+    st.markdown(f"""
     <div class="info-box">
         <strong>{DOMAINS[st.session_state.current_domain]['icon']} Domaine :</strong> {st.session_state.current_domain}
     </div>
-    """
-    st.markdown(info_html, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
     
     for msg in st.session_state.messages:
         if msg["role"] == "user":
-            msg_html = f"""<div class="user-msg"><strong>👤 Vous:</strong><br>{msg['content']}</div>"""
+            st.markdown(f"""<div class="user-msg"><strong>👤 Vous:</strong><br>{msg['content']}</div>""", unsafe_allow_html=True)
         else:
-            msg_html = f"""<div class="assistant-msg"><strong>🤖 Assistant:</strong><br>{msg['content']}</div>"""
-        st.markdown(msg_html, unsafe_allow_html=True)
+            st.markdown(f"""<div class="assistant-msg"><strong>🤖 Assistant:</strong><br>{msg['content']}</div>""", unsafe_allow_html=True)
     
     with st.form("chat_form", clear_on_submit=True):
         user_input = st.text_area("Message", placeholder="Posez votre question...", height=120)
@@ -444,12 +439,11 @@ elif st.session_state.page == "💬 Chat IA":
 elif st.session_state.page == "📄 Analyse Documents":
     st.markdown("### 📄 Analyse Intelligente avec GPT-4")
     
-    info_html = """
+    st.markdown("""
     <div class="info-box">
         <h4>📚 Formats : PDF, DOCX, TXT, Code</h4>
     </div>
-    """
-    st.markdown(info_html, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
     
     uploaded_file = st.file_uploader("📁 Fichier", type=["pdf", "docx", "txt", "py", "js", "java", "cpp", "md"])
     
@@ -492,13 +486,12 @@ elif st.session_state.page == "📄 Analyse Documents":
                     with st.spinner("🤖 Analyse en cours..."):
                         result = analyze_document_with_gpt(text, analysis_type, custom_q if custom_q else None)
                     
-                    result_html = f"""
+                    st.markdown(f"""
                     <div class="analysis-result">
                         <h4>📊 Résultat de l'analyse</h4>
                         {result}
                     </div>
-                    """
-                    st.markdown(result_html, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
                     
                     st.markdown(create_download_link(result, f"analyse_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"), unsafe_allow_html=True)
                     
@@ -517,13 +510,12 @@ elif st.session_state.page == "📄 Analyse Documents":
 elif st.session_state.page == "📞 Contact":
     st.markdown("### 📞 Contactez-nous")
     
-    contact_html = """
+    st.markdown("""
     <div class="contact-card">
         <h2>💌 Envoyez-nous un message</h2>
         <p>Notre équipe vous répondra dans les plus brefs délais</p>
     </div>
-    """
-    st.markdown(contact_html, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
     
     with st.form("contact_form"):
         name = st.text_input("👤 Nom complet", placeholder="Votre nom")
@@ -544,18 +536,20 @@ elif st.session_state.page == "📞 Contact":
     
     col1, col2 = st.columns(2)
     with col1:
-        info_html = f"""
+        st.markdown(f"""
         <div class="info-box">
             <h4>📍 Coordonnées</h4>
             <p><strong>Email:</strong> {SYSTEM_INFO['contact']}</p>
             <p><strong>Localisation:</strong> {SYSTEM_INFO['location']}</p>
             <p><strong>Auteur:</strong> {SYSTEM_INFO['author']}</p>
         </div>
-        """
-        st.markdown(info_html, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
     
     with col2:
-        info_html = """
+        st.markdown("""
         <div class="info-box">
             <h4>⏰ Disponibilité</h4>
-          
+            <p>Lundi - Vendredi: 9h - 18h GMT</p>
+            <p>Réponse sous 24-48h</p>
+        </div>
+        """, unsafe_allow_html=True)
